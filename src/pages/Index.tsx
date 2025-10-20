@@ -21,7 +21,7 @@ const Index = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  const handleGenerate = (params: {
+  const handleGenerate = async (params: {
     prompt: string;
     duration: string;
     resolution: string;
@@ -31,37 +31,100 @@ const Index = () => {
     setProgress(0);
     setCurrentVideo(undefined);
 
-    // Simular progreso de generación
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          
-          // Simular video generado
-          const newVideo: Video = {
-            id: Date.now().toString(),
-            prompt: params.prompt,
-            thumbnailUrl: heroBg,
-            videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-            duration: `${params.duration}s`,
-            resolution: params.resolution,
-            createdAt: new Date().toLocaleDateString('es-ES', { 
-              month: 'short', 
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            }),
-          };
-          
-          setVideos((prev) => [newVideo, ...prev]);
-          setCurrentVideo(newVideo.videoUrl);
-          setIsGenerating(false);
-          
-          return 100;
+    try {
+      // Iniciar generación del video
+      const generateResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-video`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(params),
         }
-        return prev + 2;
-      });
-    }, 100);
+      );
+
+      if (!generateResponse.ok) {
+        throw new Error('Error al iniciar la generación del video');
+      }
+
+      const { video_id } = await generateResponse.json();
+      console.log('Video ID recibido:', video_id);
+
+      // Simular progreso mientras se genera
+      let currentProgress = 0;
+      const progressInterval = setInterval(() => {
+        currentProgress += 5;
+        if (currentProgress <= 90) {
+          setProgress(currentProgress);
+        }
+      }, 2000);
+
+      // Hacer polling para obtener el video
+      let attempts = 0;
+      const maxAttempts = 60; // 5 minutos máximo
+      const pollInterval = 5000; // 5 segundos
+
+      const checkVideo = async () => {
+        attempts++;
+        
+        if (attempts > maxAttempts) {
+          clearInterval(progressInterval);
+          throw new Error('Tiempo de espera excedido');
+        }
+
+        try {
+          const videoResponse = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-video?video_id=${video_id}`,
+            {
+              method: 'GET',
+            }
+          );
+
+          if (videoResponse.ok) {
+            clearInterval(progressInterval);
+            setProgress(100);
+
+            // Crear URL del video
+            const videoBlob = await videoResponse.blob();
+            const videoUrl = URL.createObjectURL(videoBlob);
+
+            const newVideo: Video = {
+              id: video_id,
+              prompt: params.prompt,
+              thumbnailUrl: heroBg,
+              videoUrl: videoUrl,
+              duration: `${params.duration}s`,
+              resolution: params.resolution,
+              createdAt: new Date().toLocaleDateString('es-ES', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              }),
+            };
+
+            setVideos((prev) => [newVideo, ...prev]);
+            setCurrentVideo(newVideo.videoUrl);
+            setIsGenerating(false);
+          } else {
+            // Si no está listo, seguir esperando
+            setTimeout(checkVideo, pollInterval);
+          }
+        } catch (error) {
+          console.error('Error verificando video:', error);
+          setTimeout(checkVideo, pollInterval);
+        }
+      };
+
+      // Iniciar polling
+      setTimeout(checkVideo, pollInterval);
+
+    } catch (error) {
+      console.error('Error:', error);
+      setIsGenerating(false);
+      setProgress(0);
+    }
   };
 
   const handleVideoClick = (video: Video) => {
