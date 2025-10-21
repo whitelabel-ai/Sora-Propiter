@@ -19,12 +19,13 @@ serve(async (req) => {
     const url = new URL(req.url);
     const videoId = url.searchParams.get('video_id');
 
-    // Si se proporciona video_id, obtener el video generado
+    // Si se proporciona video_id, verificar estado o descargar video
     if (videoId) {
-      console.log('Obteniendo video:', videoId);
+      console.log('Verificando estado del video:', videoId);
       
-      const response = await fetch(
-        `https://api.openai.com/v1/videos/${videoId}/content`,
+      // Primero verificar el estado
+      const statusResponse = await fetch(
+        `https://api.openai.com/v1/videos/${videoId}`,
         {
           method: 'GET',
           headers: {
@@ -33,20 +34,61 @@ serve(async (req) => {
         }
       );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error obteniendo video:', response.status, errorText);
-        throw new Error(`Error al obtener el video: ${response.status}`);
+      if (!statusResponse.ok) {
+        const errorText = await statusResponse.text();
+        console.error('Error verificando estado:', statusResponse.status, errorText);
+        return new Response(
+          JSON.stringify({ 
+            error: `Error al verificar estado: ${statusResponse.status}`,
+            status: 'error'
+          }),
+          {
+            status: statusResponse.status,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
 
-      // Retornar el video como blob
-      const videoBlob = await response.blob();
-      return new Response(videoBlob, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'video/mp4',
-        },
-      });
+      const statusData = await statusResponse.json();
+      console.log('Estado del video:', statusData);
+
+      // Si está completado, descargar el video
+      if (statusData.status === 'completed') {
+        console.log('Video completado, descargando...');
+        const downloadResponse = await fetch(
+          `https://api.openai.com/v1/videos/${videoId}/content`,
+          {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            },
+          }
+        );
+
+        if (!downloadResponse.ok) {
+          throw new Error(`Error al descargar video: ${downloadResponse.status}`);
+        }
+
+        const videoBlob = await downloadResponse.blob();
+        return new Response(videoBlob, {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'video/mp4',
+          },
+        });
+      }
+
+      // Si no está completado, retornar el estado actual
+      return new Response(
+        JSON.stringify({ 
+          status: statusData.status,
+          progress: statusData.progress || 0
+        }),
+        {
+          status: 202, // Accepted - processing
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     // Si no hay video_id, iniciar generación
@@ -76,7 +118,12 @@ serve(async (req) => {
     const data = await response.json();
     console.log('Video iniciado:', data);
 
-    return new Response(JSON.stringify(data), {
+    // La API retorna { id, status, ... }
+    return new Response(JSON.stringify({ 
+      video_id: data.id,
+      status: data.status,
+      progress: data.progress || 0
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {

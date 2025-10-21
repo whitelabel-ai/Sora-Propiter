@@ -96,7 +96,10 @@ const Index = () => {
             }
           );
 
-          if (videoResponse.ok) {
+          const contentType = videoResponse.headers.get('content-type');
+          
+          // Si es video/mp4, el video está listo
+          if (videoResponse.ok && contentType?.includes('video/mp4')) {
             clearInterval(progressInterval);
             setProgress(100);
 
@@ -127,9 +130,21 @@ const Index = () => {
               title: "¡Video listo!",
               description: "Tu video ha sido generado exitosamente.",
             });
+          } else if (videoResponse.status === 202) {
+            // Status 202 significa que aún se está procesando
+            const statusData = await videoResponse.json();
+            const apiProgress = statusData.progress || 0;
+            
+            // Actualizar progreso si la API lo proporciona
+            if (apiProgress > 0) {
+              setProgress(apiProgress);
+            }
+            
+            console.log(`Intento ${attempts}/${maxAttempts}: Video en progreso (${apiProgress}%)`);
+            setTimeout(checkVideo, pollInterval);
           } else {
-            // Si no está listo, seguir esperando
-            console.log(`Intento ${attempts}/${maxAttempts}: Video aún no está listo`);
+            // Error al verificar
+            console.error('Error verificando video:', videoResponse.status);
             setTimeout(checkVideo, pollInterval);
           }
         } catch (error) {
