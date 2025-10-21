@@ -62,7 +62,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: model || 'sora-2',
         prompt,
-        seconds: parseInt(seconds),
+        seconds: String(seconds),
         size,
       }),
     });

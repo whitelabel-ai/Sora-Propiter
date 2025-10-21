@@ -4,6 +4,7 @@ import VideoCreator from "@/components/VideoCreator";
 import VideoPreview from "@/components/VideoPreview";
 import VideoGallery from "@/components/VideoGallery";
 import heroBg from "@/assets/hero-bg.jpg";
+import { useToast } from "@/hooks/use-toast";
 
 interface Video {
   id: string;
@@ -16,6 +17,7 @@ interface Video {
 }
 
 const Index = () => {
+  const { toast } = useToast();
   const [videos, setVideos] = useState<Video[]>([]);
   const [currentVideo, setCurrentVideo] = useState<string | undefined>();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -45,11 +47,17 @@ const Index = () => {
       );
 
       if (!generateResponse.ok) {
-        throw new Error('Error al iniciar la generación del video');
+        const errorData = await generateResponse.json();
+        throw new Error(errorData.error || 'Error al iniciar la generación del video');
       }
 
       const { video_id } = await generateResponse.json();
       console.log('Video ID recibido:', video_id);
+      
+      toast({
+        title: "Generando video",
+        description: "Tu video está siendo generado. Esto puede tomar unos minutos.",
+      });
 
       // Simular progreso mientras se genera
       let currentProgress = 0;
@@ -70,7 +78,14 @@ const Index = () => {
         
         if (attempts > maxAttempts) {
           clearInterval(progressInterval);
-          throw new Error('Tiempo de espera excedido');
+          setIsGenerating(false);
+          setProgress(0);
+          toast({
+            title: "Error",
+            description: "Tiempo de espera excedido. Por favor intenta de nuevo.",
+            variant: "destructive",
+          });
+          return;
         }
 
         try {
@@ -107,12 +122,19 @@ const Index = () => {
             setVideos((prev) => [newVideo, ...prev]);
             setCurrentVideo(newVideo.videoUrl);
             setIsGenerating(false);
+            
+            toast({
+              title: "¡Video listo!",
+              description: "Tu video ha sido generado exitosamente.",
+            });
           } else {
             // Si no está listo, seguir esperando
+            console.log(`Intento ${attempts}/${maxAttempts}: Video aún no está listo`);
             setTimeout(checkVideo, pollInterval);
           }
         } catch (error) {
           console.error('Error verificando video:', error);
+          // Continuar intentando en caso de errores de red temporales
           setTimeout(checkVideo, pollInterval);
         }
       };
@@ -124,6 +146,12 @@ const Index = () => {
       console.error('Error:', error);
       setIsGenerating(false);
       setProgress(0);
+      
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al generar el video",
+        variant: "destructive",
+      });
     }
   };
 
