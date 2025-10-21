@@ -39,9 +39,9 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
     if (model === "sora-2") {
       pricePerSecond = 0.1;
     } else if (model === "sora-2-pro") {
-      if (size === "1280x720" || size === "720x1280") {
+      if (["1280x720", "720x1280"].includes(size)) {
         pricePerSecond = 0.3;
-      } else if (size === "1792x1024" || size === "1024x1792") {
+      } else {
         pricePerSecond = 0.5;
       }
     }
@@ -64,9 +64,9 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
   };
 
   return (
-    <div className="bg-gradient-to-b from-background to-secondary/40 backdrop-blur-md border border-border/60 shadow-xl rounded-2xl p-6 space-y-6 transition-all duration-300 hover:shadow-2xl">
+    <div className="bg-gradient-to-b from-background to-secondary/30 border border-border/50 backdrop-blur-lg rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 space-y-8">
       {/* Header */}
-      <div className="flex items-center gap-3 pb-2 border-b border-border/40">
+      <div className="flex items-center gap-3 border-b border-border/40 pb-3">
         <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-primary to-secondary flex items-center justify-center shadow-md">
           <Video className="w-5 h-5 text-primary-foreground" />
         </div>
@@ -76,9 +76,9 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
         </div>
       </div>
 
-      {/* Prompt Input */}
-      <div className="space-y-3">
-        <Label htmlFor="prompt" className="text-sm font-medium text-foreground/90">
+      {/* Prompt */}
+      <div className="space-y-2">
+        <Label htmlFor="prompt" className="text-sm font-medium">
           Descripción del video
         </Label>
         <Textarea
@@ -87,144 +87,157 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           rows={5}
-          className="resize-none border-border/50 focus-visible:ring-primary/40 bg-secondary/40 text-foreground placeholder:text-muted-foreground/60"
+          className="resize-none border-border/50 bg-secondary/30 focus-visible:ring-primary/40 text-foreground placeholder:text-muted-foreground/70"
         />
         <p className="text-xs text-muted-foreground text-right">{prompt.length} / 1000 caracteres</p>
       </div>
 
-      {/* Options */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Modelo */}
-        <div className="space-y-2">
-          <Label htmlFor="model" className="flex items-center gap-2 font-medium">
-            <Video className="w-3 h-3 text-primary" />
-            Modelo
-          </Label>
-          <Select
-            value={model}
-            onValueChange={(val) => {
-              setModel(val);
-              setSize("1280x720");
-            }}
-          >
-            <SelectTrigger id="model" className="bg-secondary/50 focus:ring-primary/50">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="sora-2">Sora 2</SelectItem>
-              <SelectItem value="sora-2-pro">Sora 2 Pro</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Configuración básica */}
+      <div>
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+          Configuración básica
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Modelo */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 font-medium">
+              <Video className="w-3 h-3 text-primary" /> Modelo
+            </Label>
+            <Select
+              value={model}
+              onValueChange={(val) => {
+                setModel(val);
+                setSize("1280x720");
+              }}
+            >
+              <SelectTrigger className="bg-secondary/50 focus:ring-primary/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sora-2">Sora 2</SelectItem>
+                <SelectItem value="sora-2-pro">Sora 2 Pro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Duración */}
-        <div className="space-y-2">
-          <Label htmlFor="seconds" className="flex items-center gap-2 font-medium">
-            <Clock className="w-3 h-3 text-primary" />
-            Duración
-          </Label>
-          <Select value={seconds} onValueChange={setSeconds}>
-            <SelectTrigger id="seconds" className="bg-secondary/50 focus:ring-primary/50">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="4">4 segundos</SelectItem>
-              <SelectItem value="8">8 segundos</SelectItem>
-              <SelectItem value="12">12 segundos</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+          {/* Duración */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 font-medium">
+              <Clock className="w-3 h-3 text-primary" /> Duración
+            </Label>
+            <Select value={seconds} onValueChange={setSeconds}>
+              <SelectTrigger className="bg-secondary/50 focus:ring-primary/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="4">4 segundos</SelectItem>
+                <SelectItem value="8">8 segundos</SelectItem>
+                <SelectItem value="12">12 segundos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Resolución */}
-        <div className="space-y-2">
-          <Label htmlFor="size" className="flex items-center gap-2 font-medium">
-            <Maximize2 className="w-3 h-3 text-primary" />
-            Resolución
-          </Label>
-          <Select value={size} onValueChange={setSize}>
-            <SelectTrigger id="size" className="bg-secondary/50 focus:ring-primary/50">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {getSizeOptions().map((res) => (
-                <SelectItem key={res} value={res}>
-                  {res}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Categoría */}
-        <div className="space-y-2">
-          <Label htmlFor="category" className="flex items-center gap-2 font-medium">
-            <Tag className="w-3 h-3 text-primary" />
-            Categoría
-          </Label>
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger id="category" className="bg-secondary/50 focus:ring-primary/50">
-              <SelectValue placeholder="Selecciona una categoría" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="naturaleza">Naturaleza</SelectItem>
-              <SelectItem value="tecnologia">Tecnología</SelectItem>
-              <SelectItem value="personas">Personas</SelectItem>
-              <SelectItem value="animales">Animales</SelectItem>
-              <SelectItem value="arquitectura">Arquitectura</SelectItem>
-              <SelectItem value="abstracto">Abstracto</SelectItem>
-              <SelectItem value="ciencia-ficcion">Ciencia Ficción</SelectItem>
-              <SelectItem value="deportes">Deportes</SelectItem>
-              <SelectItem value="comida">Comida</SelectItem>
-              <SelectItem value="otro">Otro</SelectItem>
-            </SelectContent>
-          </Select>
+          {/* Resolución */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 font-medium">
+              <Maximize2 className="w-3 h-3 text-primary" /> Resolución
+            </Label>
+            <Select value={size} onValueChange={setSize}>
+              <SelectTrigger className="bg-secondary/50 focus:ring-primary/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {getSizeOptions().map((res) => (
+                  <SelectItem key={res} value={res}>
+                    {res}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
-      {/* Estilo visual */}
-      <div className="space-y-3 pt-2">
-        <Label htmlFor="style" className="flex items-center gap-2 font-medium">
-          <Sparkles className="w-3 h-3 text-primary" />
-          Estilo Visual
-        </Label>
-        <Select value={style} onValueChange={setStyle}>
-          <SelectTrigger id="style" className="bg-secondary/50 focus:ring-primary/50">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="cinematografico">🎬 Cinematográfico</SelectItem>
-            <SelectItem value="documental">📹 Documental</SelectItem>
-            <SelectItem value="anime">🎨 Anime</SelectItem>
-            <SelectItem value="vintage">📺 Vintage/Retro</SelectItem>
-            <SelectItem value="natural">🌿 Natural/Realista</SelectItem>
-            <SelectItem value="comercial">💼 Comercial/Publicitario</SelectItem>
-            <SelectItem value="abstracto">🌈 Abstracto/Artístico</SelectItem>
-            <SelectItem value="aereo">🚁 Aéreo/Drone</SelectItem>
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground italic">
-          Tu prompt será enriquecido automáticamente según este estilo visual.
-        </p>
+      {/* Configuración avanzada */}
+      <div>
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+          Configuración avanzada
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Categoría */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 font-medium">
+              <Tag className="w-3 h-3 text-primary" /> Categoría
+            </Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger className="bg-secondary/50 focus:ring-primary/50">
+                <SelectValue placeholder="Selecciona una categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                {[
+                  "Naturaleza",
+                  "Tecnología",
+                  "Personas",
+                  "Animales",
+                  "Arquitectura",
+                  "Abstracto",
+                  "Ciencia Ficción",
+                  "Deportes",
+                  "Comida",
+                  "Otro",
+                ].map((item) => (
+                  <SelectItem key={item.toLowerCase()} value={item.toLowerCase()}>
+                    {item}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Estilo */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 font-medium">
+              <Sparkles className="w-3 h-3 text-primary" /> Estilo Visual
+            </Label>
+            <Select value={style} onValueChange={setStyle}>
+              <SelectTrigger className="bg-secondary/50 focus:ring-primary/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cinematografico">🎬 Cinematográfico</SelectItem>
+                <SelectItem value="documental">📹 Documental</SelectItem>
+                <SelectItem value="anime">🎨 Anime</SelectItem>
+                <SelectItem value="vintage">📺 Vintage / Retro</SelectItem>
+                <SelectItem value="natural">🌿 Natural / Realista</SelectItem>
+                <SelectItem value="comercial">💼 Comercial / Publicitario</SelectItem>
+                <SelectItem value="abstracto">🌈 Abstracto / Artístico</SelectItem>
+                <SelectItem value="aereo">🚁 Aéreo / Drone</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground italic">
+              Tu prompt será enriquecido automáticamente según este estilo visual.
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Costo estimado */}
+      {/* Costo */}
       <div className="p-4 bg-secondary/30 rounded-xl border border-border/50 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <DollarSign className="w-4 h-4 text-primary" />
-          <span className="text-sm text-muted-foreground">Costo estimado</span>
+          Costo estimado
         </div>
         <span className="text-xl font-bold text-primary">${calculateCost()} USD</span>
       </div>
 
-      {/* Botón generar */}
+      {/* Botón */}
       <Button
         onClick={handleGenerate}
-        variant="default"
         size="lg"
-        className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 shadow-md transition-all duration-300"
+        className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 shadow-lg transition-all duration-300"
       >
         <Sparkles className="w-4 h-4 mr-2" />
-        Generar Video con {model === "sora-2-pro" ? "Sora 2 Pro" : "Sora 2"}
+        Generar video con {model === "sora-2-pro" ? "Sora 2 Pro" : "Sora 2"}
       </Button>
     </div>
   );
