@@ -214,9 +214,9 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
                 <SelectItem value="aereo">🚁 Aéreo / Drone</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground italic">
+            {/*<p className="text-xs text-muted-foreground italic">
               Tu prompt será enriquecido automáticamente según este estilo visual.
-            </p>
+            </p>*/}
           </div>
         </div>
       </div>
