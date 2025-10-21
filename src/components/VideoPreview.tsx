@@ -1,4 +1,4 @@
-import { Play, Download, Share2, Loader2 } from "lucide-react";
+import { Play, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -29,52 +29,12 @@ const VideoPreview = ({ videoUrl, isGenerating, progress = 0, prompt }: VideoPre
     });
   };
 
-  const handleShare = async () => {
-    if (!videoUrl) return;
-    
-    try {
-      // Obtener el blob del video
-      const response = await fetch(videoUrl);
-      const blob = await response.blob();
-      const file = new File([blob], 'sora-video.mp4', { type: 'video/mp4' });
-      
-      if (navigator.share && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: 'Video generado con Sora',
-          text: prompt || 'Video creado con IA',
-          files: [file]
-        });
-        
-        toast({
-          title: "¡Compartido!",
-          description: "Video compartido exitosamente.",
-        });
-      } else {
-        // Fallback: copiar URL al portapapeles
-        await navigator.clipboard.writeText(window.location.href);
-        toast({
-          title: "URL copiada",
-          description: "El enlace ha sido copiado al portapapeles.",
-        });
-      }
-    } catch (error) {
-      console.error('Error al compartir:', error);
-      toast({
-        title: "Error al compartir",
-        description: "No se pudo compartir el video.",
-        variant: "destructive",
-      });
-    }
-  };
   return (
     <div className="bg-card shadow-card rounded-xl p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Vista Previa</h2>
         {videoUrl && (
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={handleShare} title="Compartir video">
-              <Share2 className="w-4 h-4" />
-            </Button>
             <Button variant="ghost" size="sm" onClick={handleDownload} title="Descargar video">
               <Download className="w-4 h-4" />
             </Button>

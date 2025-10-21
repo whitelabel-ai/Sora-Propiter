@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Video, Clock, Maximize2 } from "lucide-react";
+import { Sparkles, Video, Clock, Maximize2, Tag, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 
 interface VideoCreatorProps {
@@ -12,6 +12,7 @@ interface VideoCreatorProps {
     seconds: string;
     size: string;
     model: string;
+    category: string;
   }) => void;
 }
 
@@ -20,6 +21,7 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
   const [model, setModel] = useState("sora-2");
   const [seconds, setSeconds] = useState("4");
   const [size, setSize] = useState("1280x720");
+  const [category, setCategory] = useState("");
 
   const getSizeOptions = () => {
     if (model === "sora-2-pro") {
@@ -28,13 +30,35 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
     return ["1280x720", "720x1280"];
   };
 
+  const calculateCost = () => {
+    const duration = parseInt(seconds);
+    let pricePerSecond = 0;
+
+    if (model === "sora-2") {
+      pricePerSecond = 0.10;
+    } else if (model === "sora-2-pro") {
+      if (size === "1280x720" || size === "720x1280") {
+        pricePerSecond = 0.30;
+      } else if (size === "1792x1024" || size === "1024x1792") {
+        pricePerSecond = 0.50;
+      }
+    }
+
+    return (duration * pricePerSecond).toFixed(2);
+  };
+
   const handleGenerate = () => {
     if (!prompt.trim()) {
       toast.error("Por favor, describe el video que quieres crear");
       return;
     }
     
-    onGenerate({ prompt, seconds, size, model });
+    if (!category.trim()) {
+      toast.error("Por favor, selecciona una categoría");
+      return;
+    }
+    
+    onGenerate({ prompt, seconds, size, model, category });
     toast.success("Generando tu video...");
   };
 
@@ -119,6 +143,40 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="category" className="flex items-center gap-2">
+              <Tag className="w-3 h-3" />
+              Categoría
+            </Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger id="category" className="bg-secondary/50">
+                <SelectValue placeholder="Selecciona una categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="naturaleza">Naturaleza</SelectItem>
+                <SelectItem value="tecnologia">Tecnología</SelectItem>
+                <SelectItem value="personas">Personas</SelectItem>
+                <SelectItem value="animales">Animales</SelectItem>
+                <SelectItem value="arquitectura">Arquitectura</SelectItem>
+                <SelectItem value="abstracto">Abstracto</SelectItem>
+                <SelectItem value="ciencia-ficcion">Ciencia Ficción</SelectItem>
+                <SelectItem value="deportes">Deportes</SelectItem>
+                <SelectItem value="comida">Comida</SelectItem>
+                <SelectItem value="otro">Otro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="p-4 bg-secondary/30 rounded-lg border border-border/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Costo estimado:</span>
+            </div>
+            <span className="text-lg font-bold text-primary">${calculateCost()} USD</span>
           </div>
         </div>
 

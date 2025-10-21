@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardHeader from "@/components/DashboardHeader";
 import VideoCreator from "@/components/VideoCreator";
 import VideoPreview from "@/components/VideoPreview";
 import VideoGallery from "@/components/VideoGallery";
 import heroBg from "@/assets/hero-bg.jpg";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 interface Video {
   id: string;
@@ -18,16 +21,76 @@ interface Video {
 
 const Index = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [user, setUser] = useState<User | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [currentVideo, setCurrentVideo] = useState<string | undefined>();
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    // Check auth state
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate("/auth");
+      } else {
+        setUser(session.user);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate("/auth");
+      } else {
+        setUser(session.user);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  useEffect(() => {
+    if (user) {
+      loadVideos();
+    }
+  }, [user]);
+
+  const loadVideos = async () => {
+    const { data, error } = await supabase
+      .from("videos")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error loading videos:", error);
+      return;
+    }
+
+    if (data) {
+      const formattedVideos: Video[] = data.map((v) => ({
+        id: v.id,
+        prompt: v.prompt,
+        thumbnailUrl: heroBg,
+        videoUrl: v.video_url,
+        duration: v.duration,
+        resolution: v.size,
+        createdAt: new Date(v.created_at).toLocaleDateString('es-ES', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+      }));
+      setVideos(formattedVideos);
+    }
+  };
 
   const handleGenerate = async (params: {
     prompt: string;
     seconds: string;
     size: string;
     model: string;
+    category: string;
   }) => {
     setIsGenerating(true);
     setProgress(0);
@@ -107,23 +170,26 @@ const Index = () => {
             const videoBlob = await videoResponse.blob();
             const videoUrl = URL.createObjectURL(videoBlob);
 
-            const newVideo: Video = {
+            // Guardar en base de datos
+            const { error: dbError } = await supabase.from("videos").insert({
               id: video_id,
+              user_id: user?.id,
               prompt: params.prompt,
-              thumbnailUrl: heroBg,
-              videoUrl: videoUrl,
+              category: params.category,
+              model: params.model,
+              size: params.size,
               duration: `${params.seconds}s`,
-              resolution: params.size,
-              createdAt: new Date().toLocaleDateString('es-ES', {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              }),
-            };
+              video_url: videoUrl,
+            });
 
-            setVideos((prev) => [newVideo, ...prev]);
-            setCurrentVideo(newVideo.videoUrl);
+            if (dbError) {
+              console.error("Error saving to database:", dbError);
+            }
+
+            // Recargar videos
+            await loadVideos();
+            
+            setCurrentVideo(videoUrl);
             setIsGenerating(false);
             
             toast({
