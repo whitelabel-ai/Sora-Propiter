@@ -97,30 +97,67 @@ const Index = () => {
   const handleSaveVideo = async () => {
     if (!currentVideo || !currentVideoParams || !user) return;
 
-    const { error: dbError } = await supabase.from("videos").insert({
-      user_id: user.id,
-      prompt: currentVideoParams.prompt,
-      category: currentVideoParams.category,
-      model: currentVideoParams.model,
-      size: currentVideoParams.size,
-      duration: currentVideoParams.duration,
-      video_url: currentVideo,
-    });
+    try {
+      toast({
+        title: "Guardando video...",
+        description: "Subiendo tu video al almacenamiento.",
+      });
 
-    if (dbError) {
-      console.error("Error saving to database:", dbError);
+      // Fetch the blob from the current video URL
+      const response = await fetch(currentVideo);
+      const blob = await response.blob();
+      
+      // Generate a unique filename
+      const timestamp = new Date().getTime();
+      const fileName = `${user.id}/${timestamp}.mp4`;
+      
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('videos')
+        .upload(fileName, blob, {
+          contentType: 'video/mp4',
+          upsert: false
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('videos')
+        .getPublicUrl(fileName);
+
+      // Save to database with storage URL
+      const { error: dbError } = await supabase.from("videos").insert({
+        user_id: user.id,
+        prompt: currentVideoParams.prompt,
+        category: currentVideoParams.category,
+        model: currentVideoParams.model,
+        size: currentVideoParams.size,
+        duration: currentVideoParams.duration,
+        video_url: publicUrl,
+      });
+
+      if (dbError) {
+        throw dbError;
+      }
+
+      toast({
+        title: "¡Video guardado!",
+        description: "Tu video ha sido guardado en tu galería.",
+      });
+      
+      await loadVideos();
+      setCurrentVideoParams(null);
+      
+    } catch (error) {
+      console.error("Error saving video:", error);
       toast({
         title: "Error",
         description: "No se pudo guardar el video",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "¡Video guardado!",
-        description: "Tu video ha sido guardado en tu galería.",
-      });
-      await loadVideos();
-      setCurrentVideoParams(null);
     }
   };
 
@@ -266,8 +303,51 @@ const Index = () => {
     }
   };
 
-  const handleVideoClick = (video: Video) => {
-    setCurrentVideo(video.videoUrl);
+  const handleVideoClick = async (video: Video) => {
+    // If it's a storage URL, we need to get a signed URL
+    if (video.videoUrl.includes('supabase.co/storage')) {
+      try {
+        // Extract the file path from the public URL
+        const urlParts = video.videoUrl.split('/videos/');
+        if (urlParts.length === 2) {
+          const filePath = urlParts[1];
+          
+          // Get a signed URL that will work
+          const { data, error } = await supabase.storage
+            .from('videos')
+            .createSignedUrl(filePath, 3600); // 1 hour expiry
+
+          if (error) {
+            console.error("Error getting signed URL:", error);
+            toast({
+              title: "Error",
+              description: "No se pudo cargar el video",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          setCurrentVideo(data.signedUrl);
+          setCurrentVideoParams({
+            prompt: video.prompt,
+            category: video.category,
+            model: "sora-2", // Default, we don't store model in loaded videos
+            size: video.resolution,
+            duration: video.duration,
+          });
+        }
+      } catch (error) {
+        console.error("Error loading video:", error);
+        toast({
+          title: "Error",
+          description: "No se pudo cargar el video",
+          variant: "destructive",
+        });
+      }
+    } else {
+      // It's already a blob URL or other direct URL
+      setCurrentVideo(video.videoUrl);
+    }
   };
 
   return (

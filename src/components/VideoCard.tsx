@@ -51,9 +51,11 @@ const VideoCard = ({
       
       <div className="p-3 space-y-2">
         <p className="text-sm font-medium line-clamp-2">{prompt}</p>
-        <Badge variant="outline" className="text-xs">
-          {category.charAt(0).toUpperCase() + category.slice(1)}
-        </Badge>
+        {category && (
+          <Badge variant="outline" className="text-xs">
+            {category.charAt(0).toUpperCase() + category.slice(1)}
+          </Badge>
+        )}
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">{createdAt}</p>
           <Button variant="ghost" size="icon" className="h-6 w-6">

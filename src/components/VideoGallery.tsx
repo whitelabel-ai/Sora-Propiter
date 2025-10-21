@@ -22,7 +22,7 @@ interface VideoGalleryProps {
 const VideoGallery = ({ videos, onVideoClick }: VideoGalleryProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
-  const categories = ["all", ...Array.from(new Set(videos.map(v => v.category)))];
+  const categories = ["all", ...Array.from(new Set(videos.map(v => v.category).filter(Boolean)))];
   const filteredVideos = selectedCategory === "all" 
     ? videos 
     : videos.filter(v => v.category === selectedCategory);
@@ -47,9 +47,9 @@ const VideoGallery = ({ videos, onVideoClick }: VideoGalleryProps) => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas las categorías</SelectItem>
-              {categories.filter(c => c !== "all").map((category) => (
+              {categories.filter(c => c !== "all" && c).map((category) => (
                 <SelectItem key={category} value={category}>
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
+                  {category?.charAt(0).toUpperCase() + category?.slice(1)}
                 </SelectItem>
               ))}
             </SelectContent>
