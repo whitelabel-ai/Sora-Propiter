@@ -4,6 +4,7 @@ import DashboardHeader from "@/components/DashboardHeader";
 import VideoCreator from "@/components/VideoCreator";
 import VideoPreview from "@/components/VideoPreview";
 import VideoGallery from "@/components/VideoGallery";
+import UsageStats from "@/components/UsageStats";
 import heroBg from "@/assets/hero-bg.jpg";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -123,25 +124,46 @@ const Index = () => {
         throw uploadError;
       }
 
-      // Get the public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('videos')
-        .getPublicUrl(fileName);
-
-      // Save to database with storage URL
-      const { error: dbError } = await supabase.from("videos").insert({
+      // Save to database with storage path (not public URL)
+      const { data: videoData, error: dbError } = await supabase.from("videos").insert({
         user_id: user.id,
         prompt: currentVideoParams.prompt,
         category: currentVideoParams.category,
         model: currentVideoParams.model,
         size: currentVideoParams.size,
         duration: currentVideoParams.duration,
-        video_url: publicUrl,
-      });
+        video_url: fileName, // Save the storage path, not the public URL
+      }).select().single();
 
       if (dbError) {
         throw dbError;
       }
+
+      // Calculate and log the cost
+      const seconds = parseInt(currentVideoParams.duration.replace('s', ''));
+      let pricePerSecond = 0;
+      
+      if (currentVideoParams.model === "sora-2") {
+        pricePerSecond = 0.10;
+      } else if (currentVideoParams.model === "sora-2-pro") {
+        if (currentVideoParams.size === "1280x720" || currentVideoParams.size === "720x1280") {
+          pricePerSecond = 0.30;
+        } else if (currentVideoParams.size === "1792x1024" || currentVideoParams.size === "1024x1792") {
+          pricePerSecond = 0.50;
+        }
+      }
+
+      const cost = seconds * pricePerSecond;
+
+      // Insert usage log
+      await supabase.from("usage_logs").insert({
+        user_id: user.id,
+        video_id: videoData.id,
+        amount_usd: cost,
+        model: currentVideoParams.model,
+        size: currentVideoParams.size,
+        seconds: seconds,
+      });
 
       toast({
         title: "¡Video guardado!",
@@ -304,49 +326,31 @@ const Index = () => {
   };
 
   const handleVideoClick = async (video: Video) => {
-    // If it's a storage URL, we need to get a signed URL
-    if (video.videoUrl.includes('supabase.co/storage')) {
-      try {
-        // Extract the file path from the public URL
-        const urlParts = video.videoUrl.split('/videos/');
-        if (urlParts.length === 2) {
-          const filePath = urlParts[1];
-          
-          // Get a signed URL that will work
-          const { data, error } = await supabase.storage
-            .from('videos')
-            .createSignedUrl(filePath, 3600); // 1 hour expiry
+    try {
+      // Get a signed URL from storage
+      const { data, error } = await supabase.storage
+        .from('videos')
+        .createSignedUrl(video.videoUrl, 3600); // 1 hour expiry
 
-          if (error) {
-            console.error("Error getting signed URL:", error);
-            toast({
-              title: "Error",
-              description: "No se pudo cargar el video",
-              variant: "destructive",
-            });
-            return;
-          }
-
-          setCurrentVideo(data.signedUrl);
-          setCurrentVideoParams({
-            prompt: video.prompt,
-            category: video.category,
-            model: "sora-2", // Default, we don't store model in loaded videos
-            size: video.resolution,
-            duration: video.duration,
-          });
-        }
-      } catch (error) {
-        console.error("Error loading video:", error);
+      if (error) {
+        console.error("Error getting signed URL:", error);
         toast({
           title: "Error",
           description: "No se pudo cargar el video",
           variant: "destructive",
         });
+        return;
       }
-    } else {
-      // It's already a blob URL or other direct URL
-      setCurrentVideo(video.videoUrl);
+
+      setCurrentVideo(data.signedUrl);
+      setCurrentVideoParams(null); // Don't allow re-saving
+    } catch (error) {
+      console.error("Error loading video:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo cargar el video",
+        variant: "destructive",
+      });
     }
   };
 
@@ -391,6 +395,8 @@ const Index = () => {
             />
           </div>
 
+          <UsageStats user={user} />
+          
           <VideoGallery videos={videos} onVideoClick={handleVideoClick} />
         </div>
       </div>

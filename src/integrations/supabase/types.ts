@@ -35,6 +35,39 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_logs: {
+        Row: {
+          amount_usd: number
+          created_at: string
+          id: string
+          model: string
+          seconds: number
+          size: string
+          user_id: string
+          video_id: string | null
+        }
+        Insert: {
+          amount_usd: number
+          created_at?: string
+          id?: string
+          model: string
+          seconds: number
+          size: string
+          user_id: string
+          video_id?: string | null
+        }
+        Update: {
+          amount_usd?: number
+          created_at?: string
+          id?: string
+          model?: string
+          seconds?: number
+          size?: string
+          user_id?: string
+          video_id?: string | null
+        }
+        Relationships: []
+      }
       videos: {
         Row: {
           category: string
