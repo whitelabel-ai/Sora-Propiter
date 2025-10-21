@@ -135,10 +135,10 @@ const VideoGallery = ({ onVideoClick, category: initialCategory, autoRefresh = t
 
           <Button
             onClick={refetch}
-            variant="outline"
+            variant="modern-ghost"
             size="sm"
             disabled={loading}
-            className="w-full sm:w-auto transition-all duration-200 hover:scale-105 hover:shadow-md group"
+            className="w-full sm:w-auto transition-all duration-200 hover:scale-105 group"
           >
             {loading ? (
               <>

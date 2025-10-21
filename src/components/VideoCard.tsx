@@ -118,7 +118,7 @@ const VideoCard = ({
     <div 
       data-video-id={video.id}
       onClick={isClickable ? onClick : undefined}
-      className={`group bg-card shadow-card rounded-lg overflow-hidden transition-smooth hover:shadow-glow ${
+      className={`group card-modern rounded-xl overflow-hidden ${
         isClickable ? 'cursor-pointer hover:scale-[1.02]' : 'cursor-default'
       }`}
     >
@@ -139,13 +139,13 @@ const VideoCard = ({
               {video.status === 'failed' && onRetry && (
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant="modern-ghost"
                   onClick={(e) => {
                     e.stopPropagation();
                     onRetry();
                   }}
                   disabled={retrying}
-                  className="mt-2 text-xs h-7 bg-white/10 border-white/30 text-white hover:bg-white/20"
+                  className="mt-2 text-xs h-7 text-white"
                 >
                   {retrying ? (
                     <>
@@ -212,7 +212,7 @@ const VideoCard = ({
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6">
+              <Button variant="modern-ghost" size="icon" className="h-6 w-6">
                 <MoreVertical className="w-3 h-3" />
               </Button>
             </DropdownMenuTrigger>

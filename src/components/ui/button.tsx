@@ -17,6 +17,9 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         gradient: "gradient-primary text-primary-foreground shadow-glow hover:shadow-glow hover:scale-105",
         hero: "bg-card/50 backdrop-blur-sm border border-primary/20 text-foreground hover:bg-card/70 hover:border-primary/40",
+        modern: "btn-modern text-white",
+        "modern-secondary": "btn-secondary-modern text-white",
+        "modern-ghost": "btn-ghost-modern",
       },
       size: {
         default: "h-10 px-4 py-2",

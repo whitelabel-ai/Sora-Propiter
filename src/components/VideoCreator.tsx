@@ -153,7 +153,7 @@ const VideoCreator = ({ onVideoGenerated }: VideoCreatorProps) => {
             size="sm"
             onClick={handleEnhancePrompt}
             disabled={!prompt.trim() || enhancingPrompt}
-            className="text-xs h-7 px-2 text-muted-foreground hover:text-primary"
+            className="text-xs h-7 px-2 text-muted-foreground hover:text-secondary"
           >
             {enhancingPrompt ? (
               <>
@@ -347,10 +347,11 @@ const VideoCreator = ({ onVideoGenerated }: VideoCreatorProps) => {
         onClick={handleGenerate}
         size="lg"
         disabled={generating || !prompt.trim() || !category.trim()}
-        className={`w-full relative overflow-hidden transition-all duration-500 shadow-lg hover:shadow-xl ${
+        variant={generating ? "modern-secondary" : "modern"}
+        className={`w-full relative overflow-hidden ${
           generating 
-            ? 'bg-gradient-to-r from-blue-500 to-purple-600 animate-pulse' 
-            : 'bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 hover:scale-[1.02]'
+            ? 'animate-pulse' 
+            : 'hover:scale-[1.02]'
         } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
       >
         {generating && (

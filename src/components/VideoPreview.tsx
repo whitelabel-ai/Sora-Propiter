@@ -156,8 +156,14 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
   /**
    * Maneja cuando el video puede empezar a reproducirse
    */
-  const handleVideoCanPlay = useCallback(() => {
+  const handleVideoCanPlay = useCallback((event: React.SyntheticEvent<HTMLVideoElement>) => {
     console.log('Video can play');
+    // Reproducir automáticamente el video cuando esté listo
+    const video = event.currentTarget;
+    video.play().catch(error => {
+      console.log('Autoplay prevented by browser:', error);
+      // El navegador puede bloquear el autoplay, esto es normal
+    });
   }, []);
 
   /**
@@ -263,6 +269,8 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       <video
         src={processedVideoUrl}
         controls
+        autoPlay
+        loop
         className="w-full h-full object-contain"
         onLoadStart={handleVideoLoadStart}
         onCanPlay={handleVideoCanPlay}
@@ -285,7 +293,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       <div className="border-t pt-4 space-y-3">
         <div className="flex items-center justify-between">
           <Button
-            variant="ghost"
+            variant="modern-ghost"
             onClick={toggle}
             className="flex items-center gap-2 text-sm font-medium"
           >
@@ -309,10 +317,10 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
               {/* Botón de copiar en la esquina superior derecha */}
               <div className="absolute top-3 right-3 z-10">
                 <Button
-                  variant="ghost"
+                  variant="modern-ghost"
                   size="sm"
                   onClick={handleCopyPrompt}
-                  className="h-8 w-8 p-0 hover:bg-background/80 backdrop-blur-sm"
+                  className="h-8 w-8 p-0 backdrop-blur-sm"
                   title="Copiar prompt"
                 >
                   <Copy className="w-4 h-4" />
@@ -340,7 +348,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
             <span>Vista previa del video</span>
             <div className="flex items-center gap-2">
               <Button
-                variant="ghost"
+                variant="modern-ghost"
                 size="sm"
                 onClick={toggleFullscreen}
                 className="gap-2"
@@ -349,7 +357,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
                 {isFullscreen ? 'Salir' : 'Pantalla completa'}
               </Button>
               <Button
-                variant="ghost"
+                variant="modern"
                 size="sm"
                 onClick={handleDownload}
                 className="gap-2"
