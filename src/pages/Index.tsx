@@ -17,6 +17,7 @@ interface Video {
   duration: string;
   resolution: string;
   createdAt: string;
+  category: string;
 }
 
 const Index = () => {
@@ -81,6 +82,7 @@ const Index = () => {
         videoUrl: v.video_url,
         duration: v.duration,
         resolution: v.size,
+        category: v.category,
         createdAt: new Date(v.created_at).toLocaleDateString('es-ES', {
           month: 'short',
           day: 'numeric',
