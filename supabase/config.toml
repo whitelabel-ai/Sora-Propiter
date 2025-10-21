@@ -1,4 +1,8 @@
-project_id = "dqxylnmnehjufunorngx"
+project_id = "yjmxzowsrmwvkysfcbyj"
+
+[auth.email]
+# Disable email confirmation for basic login
+enable_confirmations = false
 
 [functions.generate-video]
 verify_jwt = false

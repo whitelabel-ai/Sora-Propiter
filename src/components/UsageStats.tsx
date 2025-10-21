@@ -17,10 +17,9 @@ interface UsageData {
   logs: Array<{
     id: string;
     created_at: string;
-    amount_usd: number;
-    model: string;
-    size: string;
-    seconds: number;
+    cost: number;
+    action: string;
+    metadata: any;
   }>;
 }
 
@@ -86,7 +85,7 @@ const UsageStats = ({ user }: UsageStatsProps) => {
         return;
       }
 
-      const totalCost = data.reduce((sum, log) => sum + Number(log.amount_usd), 0);
+      const totalCost = data.reduce((sum, log) => sum + Number(log.cost), 0);
       setUsageData({
         totalCost,
         videoCount: data.length,
@@ -182,7 +181,7 @@ const UsageStats = ({ user }: UsageStatsProps) => {
                     <TrendingUp className="w-4 h-4 text-primary" />
                     <div>
                       <p className="text-sm font-medium">
-                        {log.model} • {log.size} • {log.seconds}s
+                        {log.action} • {log.metadata?.request?.model || 'N/A'} • {log.metadata?.request?.size || 'N/A'} • {log.metadata?.request?.duration || 'N/A'}s
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(log.created_at).toLocaleString('es-ES', {
@@ -195,7 +194,7 @@ const UsageStats = ({ user }: UsageStatsProps) => {
                     </div>
                   </div>
                   <p className="text-sm font-bold text-primary">
-                    ${Number(log.amount_usd).toFixed(2)}
+                    ${Number(log.cost).toFixed(2)}
                   </p>
                 </div>
               </Card>
