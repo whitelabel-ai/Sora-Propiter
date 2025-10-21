@@ -189,6 +189,7 @@ const Index = () => {
     size: string;
     model: string;
     category: string;
+    style: string;
   }) => {
     setIsGenerating(true);
     setProgress(0);
@@ -196,6 +197,45 @@ const Index = () => {
     setCurrentVideoParams(null);
 
     try {
+      // Primero, mejorar el prompt con detalles cinematográficos
+      toast({
+        title: "Mejorando tu prompt",
+        description: "Agregando detalles cinematográficos...",
+      });
+
+      const enhanceResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/enhance-prompt`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prompt: params.prompt,
+            style: params.style,
+          }),
+        }
+      );
+
+      if (!enhanceResponse.ok) {
+        const errorData = await enhanceResponse.json();
+        throw new Error(errorData.error || 'Error al mejorar el prompt');
+      }
+
+      const { enhanced } = await enhanceResponse.json();
+      console.log('Prompt mejorado:', enhanced);
+
+      toast({
+        title: "Prompt mejorado",
+        description: "Ahora generando tu video con detalles cinematográficos...",
+      });
+
+      // Usar el prompt mejorado para generar el video
+      const enhancedParams = {
+        ...params,
+        prompt: enhanced,
+      };
+
       // Iniciar generación del video
       const generateResponse = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-video`,
@@ -204,7 +244,7 @@ const Index = () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(params),
+          body: JSON.stringify(enhancedParams),
         }
       );
 

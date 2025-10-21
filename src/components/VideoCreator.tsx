@@ -13,6 +13,7 @@ interface VideoCreatorProps {
     size: string;
     model: string;
     category: string;
+    style: string;
   }) => void;
 }
 
@@ -22,6 +23,7 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
   const [seconds, setSeconds] = useState("4");
   const [size, setSize] = useState("1280x720");
   const [category, setCategory] = useState("");
+  const [style, setStyle] = useState("cinematografico");
 
   const getSizeOptions = () => {
     if (model === "sora-2-pro") {
@@ -58,8 +60,8 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
       return;
     }
     
-    onGenerate({ prompt, seconds, size, model, category });
-    toast.success("Generando tu video...");
+    onGenerate({ prompt, seconds, size, model, category, style });
+    toast.success("Mejorando tu prompt y generando video...");
   };
 
   return (
@@ -168,6 +170,31 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="style" className="flex items-center gap-2">
+            <Sparkles className="w-3 h-3" />
+            Estilo Visual
+          </Label>
+          <Select value={style} onValueChange={setStyle}>
+            <SelectTrigger id="style" className="bg-secondary/50">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="cinematografico">🎬 Cinematográfico</SelectItem>
+              <SelectItem value="documental">📹 Documental</SelectItem>
+              <SelectItem value="anime">🎨 Anime</SelectItem>
+              <SelectItem value="vintage">📺 Vintage/Retro</SelectItem>
+              <SelectItem value="natural">🌿 Natural/Realista</SelectItem>
+              <SelectItem value="comercial">💼 Comercial/Publicitario</SelectItem>
+              <SelectItem value="abstracto">🌈 Abstracto/Artístico</SelectItem>
+              <SelectItem value="aereo">🚁 Aéreo/Drone</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Tu prompt será enriquecido automáticamente con detalles cinematográficos según este estilo
+          </p>
         </div>
 
         <div className="p-4 bg-secondary/30 rounded-lg border border-border/50">
