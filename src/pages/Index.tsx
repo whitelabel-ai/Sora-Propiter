@@ -203,37 +203,63 @@ const Index = () => {
         description: "Agregando detalles cinematográficos...",
       });
 
-      const enhanceResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/enhance-prompt`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            prompt: params.prompt,
-            style: params.style,
-          }),
-        }
-      );
+      let finalPrompt = params.prompt;
 
-      if (!enhanceResponse.ok) {
-        const errorData = await enhanceResponse.json();
-        throw new Error(errorData.error || 'Error al mejorar el prompt');
+      try {
+        const enhanceResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/enhance-prompt`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              prompt: params.prompt,
+              style: params.style,
+            }),
+          }
+        );
+
+        if (!enhanceResponse.ok) {
+          const errorData = await enhanceResponse.json();
+          throw new Error(errorData.error || 'Error al mejorar el prompt');
+        }
+
+        const { enhanced } = await enhanceResponse.json();
+        console.log('Prompt mejorado:', enhanced);
+        finalPrompt = enhanced;
+
+        toast({
+          title: "Prompt mejorado",
+          description: "Ahora generando tu video con detalles cinematográficos...",
+        });
+      } catch (error: any) {
+        console.error('Error al mejorar prompt:', error);
+        const errorMessage = error?.message || 'Error desconocido al mejorar el prompt';
+        
+        toast({
+          title: "No se pudo mejorar el prompt",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        
+        // Si el error es de créditos, no continuar
+        if (errorMessage.includes('créditos') || errorMessage.includes('quota')) {
+          setIsGenerating(false);
+          return;
+        }
+        
+        // Para otros errores, usar el prompt original
+        toast({
+          title: "Usando prompt original",
+          description: "Generando video con tu descripción sin mejoras...",
+        });
       }
 
-      const { enhanced } = await enhanceResponse.json();
-      console.log('Prompt mejorado:', enhanced);
-
-      toast({
-        title: "Prompt mejorado",
-        description: "Ahora generando tu video con detalles cinematográficos...",
-      });
-
-      // Usar el prompt mejorado para generar el video
+      // Usar el prompt (mejorado o original) para generar el video
       const enhancedParams = {
         ...params,
-        prompt: enhanced,
+        prompt: finalPrompt,
       };
 
       // Iniciar generación del video

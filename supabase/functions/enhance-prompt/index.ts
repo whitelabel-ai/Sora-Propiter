@@ -86,7 +86,17 @@ IMPORTANTE:
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Error de OpenAI:', response.status, errorText);
-      throw new Error(`Error al mejorar el prompt: ${response.status}`);
+      
+      let errorMessage = 'Error al mejorar el prompt';
+      if (response.status === 429) {
+        errorMessage = 'La API key de OpenAI no tiene créditos disponibles. Por favor, revisa tu cuenta de OpenAI y agrega créditos.';
+      } else if (response.status === 401) {
+        errorMessage = 'API key de OpenAI inválida. Verifica la configuración.';
+      } else if (response.status >= 500) {
+        errorMessage = 'OpenAI está experimentando problemas. Intenta nuevamente en unos momentos.';
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
