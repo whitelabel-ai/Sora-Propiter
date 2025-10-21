@@ -28,20 +28,42 @@ const VideoPreview = ({
   const { toast } = useToast();
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!videoUrl) return;
     
-    const a = document.createElement('a');
-    a.href = videoUrl;
-    a.download = `sora-video-${Date.now()}.mp4`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    
-    toast({
-      title: "Descargando video",
-      description: "Tu video se está descargando.",
-    });
+    try {
+      // Fetch the video as a blob
+      const response = await fetch(videoUrl);
+      if (!response.ok) {
+        throw new Error('Failed to fetch video');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      // Create download link
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sora-video-${Date.now()}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Cleanup
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Video descargado",
+        description: "Tu video se ha descargado exitosamente.",
+      });
+    } catch (error) {
+      console.error('Error downloading video:', error);
+      toast({
+        title: "Error al descargar",
+        description: "No se pudo descargar el video. Inténtalo de nuevo.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleDelete = () => {

@@ -20,7 +20,7 @@ const Index = () => {
   const [currentVideoParams, setCurrentVideoParams] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
-  const { videos, loading, refetch } = useVideos();
+  const { videos, loading, refetch } = useVideos({ autoRefresh: true });
 
   useEffect(() => {
     // Check auth state

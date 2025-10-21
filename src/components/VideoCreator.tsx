@@ -237,7 +237,17 @@ const VideoCreator = ({ onVideoGenerated }: VideoCreatorProps) => {
             </Label>
             <Select value={size} onValueChange={setSize}>
               <SelectTrigger className="bg-secondary/50 focus:ring-primary/50">
-                <SelectValue />
+                <SelectValue>
+                  {(() => {
+                    const selectedOption = getSizeOptions().find(opt => opt.value === size);
+                    return selectedOption ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">{selectedOption.icon}</span>
+                        <span>{selectedOption.label}</span>
+                      </div>
+                    ) : null;
+                  })()}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {getSizeOptions().map((res) => (
