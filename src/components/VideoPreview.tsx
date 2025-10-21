@@ -1,4 +1,4 @@
-import { Play, Download, Loader2 } from "lucide-react";
+import { Play, Download, Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -8,9 +8,11 @@ interface VideoPreviewProps {
   isGenerating: boolean;
   progress?: number;
   prompt?: string;
+  onSave?: () => void;
+  canSave?: boolean;
 }
 
-const VideoPreview = ({ videoUrl, isGenerating, progress = 0, prompt }: VideoPreviewProps) => {
+const VideoPreview = ({ videoUrl, isGenerating, progress = 0, prompt, onSave, canSave }: VideoPreviewProps) => {
   const { toast } = useToast();
 
   const handleDownload = () => {
@@ -42,7 +44,7 @@ const VideoPreview = ({ videoUrl, isGenerating, progress = 0, prompt }: VideoPre
         )}
       </div>
 
-      <div className="relative aspect-video bg-secondary/50 rounded-lg overflow-hidden">
+      <div className="relative min-h-[400px] bg-secondary/50 rounded-lg overflow-hidden flex items-center justify-center">
         {isGenerating ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
             <div className="relative">
@@ -64,7 +66,7 @@ const VideoPreview = ({ videoUrl, isGenerating, progress = 0, prompt }: VideoPre
         ) : videoUrl ? (
           <video 
             src={videoUrl} 
-            className="w-full h-full object-cover"
+            className="max-w-full max-h-[600px] object-contain"
             controls
             controlsList="nodownload"
             playsInline
@@ -78,6 +80,15 @@ const VideoPreview = ({ videoUrl, isGenerating, progress = 0, prompt }: VideoPre
           </div>
         )}
       </div>
+
+      {videoUrl && canSave && (
+        <div className="flex justify-center">
+          <Button onClick={onSave} className="gap-2">
+            <Save className="w-4 h-4" />
+            Guardar video
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

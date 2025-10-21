@@ -25,6 +25,13 @@ const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [currentVideo, setCurrentVideo] = useState<string | undefined>();
+  const [currentVideoParams, setCurrentVideoParams] = useState<{
+    prompt: string;
+    category: string;
+    model: string;
+    size: string;
+    duration: string;
+  } | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -85,6 +92,36 @@ const Index = () => {
     }
   };
 
+  const handleSaveVideo = async () => {
+    if (!currentVideo || !currentVideoParams || !user) return;
+
+    const { error: dbError } = await supabase.from("videos").insert({
+      user_id: user.id,
+      prompt: currentVideoParams.prompt,
+      category: currentVideoParams.category,
+      model: currentVideoParams.model,
+      size: currentVideoParams.size,
+      duration: currentVideoParams.duration,
+      video_url: currentVideo,
+    });
+
+    if (dbError) {
+      console.error("Error saving to database:", dbError);
+      toast({
+        title: "Error",
+        description: "No se pudo guardar el video",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "¡Video guardado!",
+        description: "Tu video ha sido guardado en tu galería.",
+      });
+      await loadVideos();
+      setCurrentVideoParams(null);
+    }
+  };
+
   const handleGenerate = async (params: {
     prompt: string;
     seconds: string;
@@ -95,6 +132,7 @@ const Index = () => {
     setIsGenerating(true);
     setProgress(0);
     setCurrentVideo(undefined);
+    setCurrentVideoParams(null);
 
     try {
       // Iniciar generación del video
@@ -170,24 +208,14 @@ const Index = () => {
             const videoBlob = await videoResponse.blob();
             const videoUrl = URL.createObjectURL(videoBlob);
 
-            // Guardar en base de datos
-            const { error: dbError } = await supabase.from("videos").insert({
-              id: video_id,
-              user_id: user?.id,
+            // Guardar parámetros para poder guardar después
+            setCurrentVideoParams({
               prompt: params.prompt,
               category: params.category,
               model: params.model,
               size: params.size,
               duration: `${params.seconds}s`,
-              video_url: videoUrl,
             });
-
-            if (dbError) {
-              console.error("Error saving to database:", dbError);
-            }
-
-            // Recargar videos
-            await loadVideos();
             
             setCurrentVideo(videoUrl);
             setIsGenerating(false);
@@ -275,7 +303,9 @@ const Index = () => {
               videoUrl={currentVideo} 
               isGenerating={isGenerating}
               progress={progress}
-              prompt={videos[0]?.prompt}
+              prompt={currentVideoParams?.prompt}
+              onSave={handleSaveVideo}
+              canSave={!!currentVideoParams}
             />
           </div>
 
