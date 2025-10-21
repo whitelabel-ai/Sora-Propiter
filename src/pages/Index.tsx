@@ -16,11 +16,9 @@ const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
-  const [currentVideo, setCurrentVideo] = useState<string | null>(null);
-  const [currentVideoParams, setCurrentVideoParams] = useState<any>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const { videos, loading, refetch } = useVideos({ autoRefresh: true });
+  const [modalVideo, setModalVideo] = useState<Video | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { refetch } = useVideos({ autoRefresh: true });
 
   useEffect(() => {
     // Check auth state
@@ -48,36 +46,72 @@ const Index = () => {
   };
 
   const handleVideoClick = async (video: Video) => {
-    if (video.status !== 'completed' || !video.video_url) {
+    if (video.status !== 'completed') {
+      toast({
+        title: "Video no disponible",
+        description: "Este video aún se está procesando o no está disponible.",
+        variant: "destructive",
+      });
       return;
     }
 
+    if (!video.video_url) {
+      toast({
+        title: "Video no disponible",
+        description: "La URL del video no está disponible.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Open modal with the selected video
+    setModalVideo(video);
+    setIsModalOpen(true);
+  };
+
+  const handleVideoDelete = async (videoId: string) => {
     try {
-      // All videos are now stored in Supabase Storage, get signed URL
-      const { data, error } = await supabase.storage
+      const { error } = await supabase
         .from('videos')
-        .createSignedUrl(video.video_url, 3600); // 1 hour expiry
+        .delete()
+        .eq('id', videoId);
 
-      if (error) {
-        console.error("Error getting signed URL:", error);
-        toast({
-          title: "Error",
-          description: "No se pudo cargar el video",
-          variant: "destructive",
-        });
-        return;
-      }
+      if (error) throw error;
 
-      setCurrentVideo(data.signedUrl);
-      setCurrentVideoParams(null); // Don't allow re-saving
+      toast({
+        title: "Video eliminado",
+        description: "El video ha sido eliminado exitosamente.",
+      });
+
+      refetch();
+      setIsModalOpen(false);
+      setModalVideo(null);
     } catch (error) {
-      console.error("Error loading video:", error);
+      console.error('Error deleting video:', error);
       toast({
         title: "Error",
-        description: "No se pudo cargar el video",
+        description: "No se pudo eliminar el video.",
         variant: "destructive",
       });
     }
+  };
+
+  const handleVideoUpgrade = async (videoId: string) => {
+    // This would open the upgrade modal
+    toast({
+      title: "Función en desarrollo",
+      description: "La función de mejora estará disponible pronto.",
+    });
+  };
+
+  const handleRegenerate = async (prompt: string) => {
+    setIsModalOpen(false);
+    setModalVideo(null);
+    // This would trigger video regeneration
+    toast({
+      title: "Regenerando video",
+      description: "Se iniciará la regeneración del video con el mismo prompt.",
+    });
   };
 
   return (
@@ -109,21 +143,41 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Video Creator - First Priority */}
+          <div className="mb-8">
             <VideoCreator onVideoGenerated={handleVideoGenerated} />
-            <VideoPreview 
-              videoUrl={currentVideo} 
-              isGenerating={isGenerating}
-              progress={progress}
-              prompt={currentVideoParams?.prompt}
-            />
           </div>
 
-          <UsageStats user={user} />
-          
-          <VideoGallery onVideoClick={handleVideoClick} />
+          {/* Video Gallery - Second Priority */}
+          <div className="mb-8">
+            <VideoGallery onVideoClick={handleVideoClick} />
+          </div>
+
+          {/* Usage Stats */}
+          <div className="mt-8">
+            <UsageStats user={user} />
+          </div>
         </div>
       </div>
+
+      {/* Video Preview Modal */}
+      {isModalOpen && modalVideo && (
+        <VideoPreview
+          isOpen={isModalOpen}
+          videoUrl={modalVideo.video_url}
+          isGenerating={false}
+          progress={0}
+          prompt={modalVideo.prompt}
+          onDelete={() => handleVideoDelete(modalVideo.id)}
+          onRegenerate={() => handleRegenerate(modalVideo.prompt)}
+          onUpgrade={() => handleVideoUpgrade(modalVideo.id)}
+          isModal={true}
+          onClose={() => {
+            setIsModalOpen(false);
+            setModalVideo(null);
+          }}
+        />
+      )}
     </div>
   );
 };

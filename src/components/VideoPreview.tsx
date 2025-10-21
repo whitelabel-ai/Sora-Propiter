@@ -1,263 +1,393 @@
-import { Play, Download, Loader2, Trash2, Eye, RotateCcw, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import React, { useState, useCallback, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Play, Download, Copy, ChevronDown, ChevronUp, AlertCircle, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
+import { useVideoUrl } from '@/hooks/use-video-url';
+import { useVideoError } from '@/hooks/use-video-error';
+import { usePromptCollapse } from '@/hooks/use-prompt-collapse';
 
 interface VideoPreviewProps {
-  videoUrl?: string;
-  isGenerating: boolean;
-  progress?: number;
+  isOpen?: boolean;
+  onClose: () => void;
+  videoUrl?: string | null;
   prompt?: string;
   onDelete?: () => void;
+  isGenerating?: boolean;
+  progress?: number;
   onRegenerate?: () => void;
   onUpgrade?: () => void;
-  canUpgrade?: boolean;
+  isModal?: boolean;
 }
 
-const VideoPreview = ({ 
+const VideoPreview: React.FC<VideoPreviewProps> = ({ 
+  isOpen = true, 
+  onClose, 
   videoUrl, 
-  isGenerating, 
-  progress = 0, 
   prompt,
   onDelete,
+  isGenerating = false,
+  progress = 0,
   onRegenerate,
   onUpgrade,
-  canUpgrade = false
-}: VideoPreviewProps) => {
-  const { toast } = useToast();
+  isModal = false
+}) => {
+  // Estados locales
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const handleDownload = async () => {
-    if (!videoUrl) return;
-    
+  // Custom hooks
+  const { 
+    url: processedVideoUrl,
+    isLoading: isUrlLoading,
+    error: urlError,
+    refreshUrl 
+  } = useVideoUrl(videoUrl);
+  
+  const { 
+    error: videoError,
+    hasError, 
+    handleVideoError, 
+    clearError 
+  } = useVideoError();
+  
+  const { 
+    isExpanded, 
+    toggle
+  } = usePromptCollapse(false);
+  
+  // Log para debugging
+  useEffect(() => {
+    console.log('VideoURL original:', videoUrl);
+    console.log('VideoURL procesada:', processedVideoUrl);
+  }, [videoUrl, processedVideoUrl]);
+
+  /**
+   * Descarga el video
+   */
+  const handleDownload = useCallback(async () => {
+    if (!processedVideoUrl) {
+      toast.error('No hay video para descargar');
+      return;
+    }
+
     try {
-      // Fetch the video as a blob
-      const response = await fetch(videoUrl);
+      const response = await fetch(processedVideoUrl);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch video');
+        throw new Error(`Error HTTP: ${response.status}`);
       }
       
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      
-      // Create download link
       const a = document.createElement('a');
+      a.style.display = 'none';
       a.href = url;
-      a.download = `sora-video-${Date.now()}.mp4`;
+      a.download = `video-${Date.now()}.mp4`;
       document.body.appendChild(a);
       a.click();
-      
-      // Cleanup
-      document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
       
-      toast({
-        title: "Video descargado",
-        description: "Tu video se ha descargado exitosamente.",
-      });
+      toast.success('Video descargado exitosamente');
     } catch (error) {
-      console.error('Error downloading video:', error);
-      toast({
-        title: "Error al descargar",
-        description: "No se pudo descargar el video. Inténtalo de nuevo.",
-        variant: "destructive"
-      });
+      console.error('Error al descargar video:', error);
+      toast.error('Error al descargar el video');
     }
-  };
+  }, [processedVideoUrl]);
 
-  const handleDelete = () => {
-    if (onDelete) {
-      onDelete();
-      toast({
-        title: "Video eliminado",
-        description: "El video ha sido eliminado correctamente.",
-      });
+  /**
+   * Maneja la carga exitosa del video
+   */
+  const handleVideoLoad = useCallback(() => {
+    console.log('Video cargado exitosamente:', processedVideoUrl);
+    clearError();
+  }, [processedVideoUrl, clearError]);
+
+  /**
+   * Maneja errores de carga del video
+   */
+  const handleVideoErrorEvent = useCallback((event: React.SyntheticEvent<HTMLVideoElement>) => {
+    const video = event.target as HTMLVideoElement;
+    let errorMessage = 'Error desconocido';
+    
+    if (video.error) {
+      switch (video.error.code) {
+        case video.error.MEDIA_ERR_ABORTED:
+          errorMessage = 'Carga de video abortada por el usuario';
+          break;
+        case video.error.MEDIA_ERR_NETWORK:
+          errorMessage = 'Error de red al cargar el video';
+          break;
+        case video.error.MEDIA_ERR_DECODE:
+          errorMessage = 'Error al decodificar el video';
+          break;
+        case video.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+          errorMessage = 'Formato de video no soportado';
+          break;
+        default:
+          errorMessage = `Error de video (código: ${video.error.code})`;
+      }
     }
-  };
+    
+    // Logs detallados para debugging
+    console.error('Error de video:', {
+      videoUrl,
+      errorCode: video.error?.code,
+      errorMessage,
+      networkState: video.networkState,
+      readyState: video.readyState,
+      currentSrc: video.currentSrc,
+      videoElement: video
+    });
+    
+    handleVideoError(event.nativeEvent);
+    
+    toast.error(errorMessage);
+  }, [videoUrl, handleVideoError]);
 
-  const handleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
-  };
+  /**
+   * Maneja el inicio de carga del video
+   */
+  const handleVideoLoadStart = useCallback(() => {
+    console.log('Video load start');
+    clearError();
+  }, [clearError]);
 
-  const handleRegenerate = () => {
-    if (onRegenerate) {
-      onRegenerate();
-      toast({
-        title: "Regenerando video",
-        description: "Se está generando una nueva versión del video.",
-      });
+  /**
+   * Maneja cuando el video puede empezar a reproducirse
+   */
+  const handleVideoCanPlay = useCallback(() => {
+    console.log('Video can play');
+  }, []);
+
+  /**
+   * Reintenta cargar el video
+   */
+  const retryVideoLoad = useCallback(async () => {
+    console.log('Reintentando cargar video...');
+    clearError();
+    
+    // Refrescar la URL del video
+    await refreshUrl();
+    
+    // Forzar recarga del video
+    const videoElements = document.querySelectorAll('video');
+    videoElements.forEach(video => {
+      video.load();
+    });
+  }, [clearError, refreshUrl]);
+
+  /**
+   * Copia el prompt al portapapeles
+   */
+  const handleCopyPrompt = useCallback(async () => {
+    if (!prompt) {
+      toast.error('No hay prompt para copiar');
+      return;
     }
-  };
 
-  return (
-    <>
-      <div className="bg-card shadow-card rounded-xl p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Vista Previa</h2>
-          {videoUrl && (
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleFullscreen} 
-                title="Ver en pantalla completa"
-                className="hover:bg-primary/10"
-              >
-                <Eye className="w-4 h-4" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleDownload} 
-                title="Descargar video"
-                className="hover:bg-green-500/10 hover:text-green-600"
-              >
-                <Download className="w-4 h-4" />
-              </Button>
-              {onRegenerate && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleRegenerate} 
-                  title="Regenerar video"
-                  className="hover:bg-blue-500/10 hover:text-blue-600"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </Button>
-              )}
-              {canUpgrade && onUpgrade && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={onUpgrade} 
-                  title="Mejorar con Sora Pro"
-                  className="hover:bg-purple-500/10 hover:text-purple-600"
-                >
-                  <Sparkles className="w-4 h-4" />
-                </Button>
-              )}
-              {onDelete && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleDelete} 
-                  title="Eliminar video"
-                  className="hover:bg-red-500/10 hover:text-red-600"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-          )}
+    try {
+      await navigator.clipboard.writeText(prompt);
+      toast.success('Prompt copiado al portapapeles');
+    } catch (error) {
+      console.error('Error al copiar prompt:', error);
+      toast.error('Error al copiar el prompt');
+    }
+  }, [prompt]);
+
+
+
+  /**
+   * Alterna el modo pantalla completa
+   */
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen(prev => !prev);
+  }, []);
+
+  /**
+   * Maneja el cierre del modal
+   */
+  const handleClose = useCallback(() => {
+    clearError();
+    if (onClose) {
+      onClose();
+    }
+  }, [clearError, onClose]);
+
+  /**
+   * Renderiza el componente de error
+   */
+  const renderError = () => {
+    if (!hasError && !urlError) return null;
+
+    const errorMessage = videoError?.message || urlError || 'Error desconocido';
+
+    return (
+      <div className="flex flex-col items-center justify-center p-8 space-y-4">
+        <AlertCircle className="w-16 h-16 text-red-500" />
+        <div className="text-center space-y-2">
+          <h3 className="text-lg font-semibold text-red-600">Error al cargar el video</h3>
+          <p className="text-sm text-muted-foreground">{errorMessage}</p>
         </div>
+        <Button onClick={retryVideoLoad} variant="outline" className="gap-2">
+          <RefreshCw className="w-4 h-4" />
+          Reintentar
+        </Button>
+      </div>
+    );
+  };
 
-        <div className="relative min-h-[400px] bg-secondary/50 rounded-lg overflow-hidden flex items-center justify-center">
-          {isGenerating ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-background/95 backdrop-blur-md">
-              {/* Animated loader icon */}
-              <div className="relative">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-primary to-secondary animate-pulse shadow-lg flex items-center justify-center">
-                  <Loader2 className="w-10 h-10 animate-spin text-primary-foreground" />
-                </div>
-                <div className="absolute inset-0 rounded-full border-4 border-primary/20 animate-ping"></div>
+  /**
+   * Renderiza el componente de carga
+   */
+  const renderLoading = () => {
+    if (!isUrlLoading) return null;
+
+    return (
+      <div className="flex flex-col items-center justify-center p-8 space-y-4">
+        <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-primary to-secondary animate-pulse flex items-center justify-center">
+          <RefreshCw className="w-8 h-8 animate-spin text-primary-foreground" />
+        </div>
+        <p className="text-sm text-muted-foreground">Cargando video...</p>
+      </div>
+    );
+  };
+
+  /**
+   * Renderiza el elemento de video
+   */
+  const renderVideo = () => {
+    if (hasError || urlError || isUrlLoading || !processedVideoUrl) return null;
+
+    return (
+      <video
+        src={processedVideoUrl}
+        controls
+        className="w-full h-full object-contain"
+        onLoadStart={handleVideoLoadStart}
+        onCanPlay={handleVideoCanPlay}
+        onLoadedData={handleVideoLoad}
+        onError={handleVideoErrorEvent}
+        preload="metadata"
+      >
+        Tu navegador no soporta el elemento de video.
+      </video>
+    );
+  };
+
+  /**
+   * Renderiza la sección del prompt
+   */
+  const renderPrompt = () => {
+    if (!prompt?.trim()) return null;
+
+    return (
+      <div className="border-t pt-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            onClick={toggle}
+            className="flex items-center gap-2 text-sm font-medium"
+          >
+            {isExpanded ? (
+              <>
+                <ChevronUp className="w-4 h-4" />
+                Ocultar prompt
+              </>
+            ) : (
+              <>
+                <ChevronDown className="w-4 h-4" />
+                Ver prompt
+              </>
+            )}
+          </Button>
+        </div>
+        
+        {isExpanded && (
+          <div className="space-y-3">
+            <div className="relative bg-muted/50 rounded-lg border">
+              {/* Botón de copiar en la esquina superior derecha */}
+              <div className="absolute top-3 right-3 z-10">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCopyPrompt}
+                  className="h-8 w-8 p-0 hover:bg-background/80 backdrop-blur-sm"
+                  title="Copiar prompt"
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
               </div>
               
-              {/* Progress content */}
-              <div className="space-y-4 text-center max-w-sm">
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-foreground">Generando tu video</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Nuestros algoritmos están creando tu video personalizado...
-                  </p>
-                </div>
-                
-                {/* Enhanced progress bar */}
-                <div className="space-y-3">
-                  <div className="relative w-80 h-3 bg-secondary/50 rounded-full overflow-hidden shadow-inner">
-                    <div 
-                      className="h-full bg-gradient-to-r from-primary via-primary/80 to-secondary rounded-full transition-all duration-500 ease-out relative overflow-hidden"
-                      style={{ width: `${Math.max(progress, 5)}%` }}
-                    >
-                      {/* Animated shine effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
-                    </div>
-                  </div>
-                  
-                  {/* Progress text and percentage */}
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">
-                      {progress < 25 ? 'Iniciando...' : 
-                       progress < 50 ? 'Procesando...' : 
-                       progress < 75 ? 'Renderizando...' : 
-                       progress < 95 ? 'Finalizando...' : 'Casi listo...'}
-                    </span>
-                    <span className="font-medium text-primary">{progress}%</span>
-                  </div>
-                </div>
-                
-                {/* Estimated time */}
-                <p className="text-xs text-muted-foreground">
-                  Tiempo estimado: {progress < 50 ? '2-3 minutos' : progress < 80 ? '1-2 minutos' : 'Menos de 1 minuto'}
+              {/* Área de texto con scroll personalizado */}
+              <div className="max-h-48 overflow-y-auto p-4 pr-12 custom-scrollbar">
+                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap break-words">
+                  {prompt}
                 </p>
               </div>
             </div>
-          ) : videoUrl ? (
-            <video 
-              src={videoUrl} 
-              className="max-w-full max-h-[600px] object-contain rounded-lg shadow-lg"
-              controls
-              controlsList="nodownload"
-              playsInline
-              style={{
-                filter: 'drop-shadow(0 10px 25px rgba(0, 0, 0, 0.1))'
-              }}
-            />
-          ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
-              <div className="w-16 h-16 rounded-full gradient-glow flex items-center justify-center">
-                <Play className="w-8 h-8" />
-              </div>
-              <p className="text-sm">Tu video aparecerá aquí</p>
-            </div>
-          )}
-        </div>
-
-        {prompt && videoUrl && (
-          <div className="bg-secondary/30 rounded-lg p-4 border-l-4 border-primary">
-            <p className="text-xs text-muted-foreground mb-1">Prompt utilizado:</p>
-            <p className="text-sm">{prompt}</p>
           </div>
         )}
       </div>
+    );
+  };
 
-      {/* Modal de pantalla completa */}
-      {isFullscreen && videoUrl && (
-        <div 
-          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
-          onClick={handleFullscreen}
-        >
-          <div className="relative max-w-full max-h-full">
-            <video 
-              src={videoUrl} 
-              className="max-w-full max-h-full object-contain"
-              controls
-              autoPlay
-              playsInline
-              onClick={(e) => e.stopPropagation()}
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleFullscreen}
-              className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white"
-            >
-              ✕
-            </Button>
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+        <DialogHeader className="p-6 pb-0">
+          <DialogTitle className="flex items-center justify-between">
+            <span>Vista previa del video</span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleFullscreen}
+                className="gap-2"
+              >
+                <Play className="w-4 h-4" />
+                {isFullscreen ? 'Salir' : 'Pantalla completa'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDownload}
+                className="gap-2"
+                disabled={!processedVideoUrl || hasError || !!urlError}
+              >
+                <Download className="w-4 h-4" />
+                Descargar
+              </Button>
+            </div>
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="p-6 pt-0 space-y-4">
+          {/* Video Container */}
+          <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+            {renderLoading()}
+            {renderError()}
+            {renderVideo()}
           </div>
+
+          {/* Prompt Section */}
+          {renderPrompt()}
         </div>
+      </DialogContent>
+
+      {/* Fullscreen Modal */}
+      {isFullscreen && (
+        <Dialog open={isFullscreen} onOpenChange={() => setIsFullscreen(false)}>
+          <DialogContent className="max-w-[95vw] max-h-[95vh] p-2">
+            <div className="relative w-full h-[90vh] bg-black rounded-lg overflow-hidden">
+              {renderLoading()}
+              {renderError()}
+              {renderVideo()}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
-    </>
+    </Dialog>
   );
 };
 

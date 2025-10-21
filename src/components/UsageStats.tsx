@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { DollarSign, TrendingUp, Video } from "lucide-react";
+import { DollarSign, TrendingUp, Video, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -112,20 +112,32 @@ const UsageStats = ({ user }: UsageStatsProps) => {
   };
 
   return (
-    <div className="bg-card shadow-card rounded-xl p-6 space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="bg-card shadow-card rounded-xl p-4 space-y-3">
+      {/* Compact header with stats inline */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center">
-            <DollarSign className="w-5 h-5 text-primary-foreground" />
+          <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
+            <DollarSign className="w-4 h-4 text-primary-foreground" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold">Registro de Gastos</h2>
-            <p className="text-sm text-muted-foreground">Monitorea tu uso de créditos</p>
+            <h2 className="text-base font-semibold">Uso de Créditos</h2>
+            <div className="flex items-center gap-4 text-sm">
+              <span className="text-muted-foreground">
+                Gasto: <span className="font-medium text-primary">
+                  ${loading ? "..." : usageData.totalCost.toFixed(2)}
+                </span>
+              </span>
+              <span className="text-muted-foreground">
+                Videos: <span className="font-medium">
+                  {loading ? "..." : usageData.videoCount}
+                </span>
+              </span>
+            </div>
           </div>
         </div>
 
         <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as DateFilter)}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[140px] h-8 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -140,47 +152,36 @@ const UsageStats = ({ user }: UsageStatsProps) => {
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="p-4 bg-secondary/30 border-border/50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <DollarSign className="w-5 h-5 text-primary" />
+      {/* Collapsible history section */}
+      <details className="group">
+        <summary className="flex items-center justify-between cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <span>Historial ({getFilterLabel()})</span>
+          <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
+        </summary>
+        
+        <div className="mt-3">
+          {loading ? (
+            <div className="flex items-center justify-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Gasto Total</p>
-              <p className="text-2xl font-bold text-primary">
-                ${loading ? "..." : usageData.totalCost.toFixed(2)} USD
-              </p>
+          ) : usageData.logs.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground">
+              <Video className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-xs">No hay registros para {getFilterLabel().toLowerCase()}</p>
             </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 bg-secondary/30 border-border/50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Video className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Videos Generados</p>
-              <p className="text-2xl font-bold">
-                {loading ? "..." : usageData.videoCount}
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {usageData.logs.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">Historial ({getFilterLabel()})</h3>
-          <div className="space-y-2 max-h-[300px] overflow-y-auto">
-            {usageData.logs.map((log) => (
-              <Card key={log.id} className="p-3 bg-secondary/20 border-border/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <TrendingUp className="w-4 h-4 text-primary" />
+          ) : (
+            <div className="max-h-48 overflow-y-auto space-y-1 pr-2">
+              {usageData.logs.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex items-center justify-between p-2 bg-secondary/10 rounded-md border border-border/20 hover:bg-secondary/20 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center">
+                      <Video className="w-3 h-3 text-primary" />
+                    </div>
                     <div>
-                      <p className="text-sm font-medium">
+                      <p className="text-xs font-medium">
                         {log.action} • {log.metadata?.request?.model || 'N/A'} • {log.metadata?.request?.size || 'N/A'} • {log.metadata?.request?.duration || 'N/A'}s
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -193,23 +194,15 @@ const UsageStats = ({ user }: UsageStatsProps) => {
                       </p>
                     </div>
                   </div>
-                  <p className="text-sm font-bold text-primary">
+                  <p className="text-xs font-bold text-primary">
                     ${Number(log.cost).toFixed(2)}
                   </p>
                 </div>
-              </Card>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
-
-      {!loading && usageData.logs.length === 0 && (
-        <div className="py-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            No hay registros de uso para {getFilterLabel().toLowerCase()}
-          </p>
-        </div>
-      )}
+      </details>
     </div>
   );
 };

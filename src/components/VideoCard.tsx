@@ -63,7 +63,38 @@ const VideoCard = ({
   };
 
   const isClickable = video.status === 'completed' && video.video_url;
-  const thumbnailUrl = video.thumbnail_url || '/placeholder-video.jpg';
+  
+  // Create a better thumbnail experience
+  const getThumbnailContent = () => {
+    if (video.thumbnail_url) {
+      return (
+        <img 
+          src={video.thumbnail_url} 
+          alt={`Video: ${video.prompt}`}
+          className={`w-full h-full object-cover transition-smooth ${
+            isClickable ? 'group-hover:scale-110' : ''
+          }`}
+        />
+      );
+    }
+    
+    // Create a visual placeholder based on video status and content
+    return (
+      <div className={`w-full h-full bg-gradient-to-br from-primary/20 via-secondary/30 to-primary/10 flex items-center justify-center transition-smooth ${
+        isClickable ? 'group-hover:scale-110' : ''
+      }`}>
+        <div className="text-center p-4">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-primary/20 flex items-center justify-center">
+            <Play className="w-6 h-6 text-primary" />
+          </div>
+          <p className="text-xs text-muted-foreground font-medium line-clamp-2">
+            {video.prompt.length > 60 ? video.prompt.substring(0, 60) + '...' : video.prompt}
+          </p>
+        </div>
+      </div>
+    );
+  };
+  
   const formattedDate = formatDistanceToNow(new Date(video.created_at), { 
     addSuffix: true, 
     locale: es 
@@ -76,13 +107,7 @@ const VideoCard = ({
       }`}
     >
       <div className="relative aspect-video bg-secondary/50 overflow-hidden">
-        <img 
-          src={thumbnailUrl} 
-          alt={video.prompt}
-          className={`w-full h-full object-cover transition-smooth ${
-            isClickable ? 'group-hover:scale-110' : ''
-          }`}
-        />
+        {getThumbnailContent()}
         
         {/* Overlay para videos no completados */}
         {!isClickable && (
