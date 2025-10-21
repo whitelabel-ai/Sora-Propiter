@@ -108,8 +108,9 @@ export const useVideos = (options: UseVideosOptions = {}) => {
         metadata: { request },
       });
 
-      toast.success('Video en proceso', {
-        description: 'Tu video se está generando. Te notificaremos cuando esté listo.',
+      toast.success('🎬 ¡Video en proceso!', {
+        description: `Tu video "${request.prompt.slice(0, 50)}${request.prompt.length > 50 ? '...' : ''}" se está generando. Te notificaremos cuando esté listo.`,
+        duration: 5000,
       });
 
       // Refrescar la lista de videos
@@ -119,8 +120,9 @@ export const useVideos = (options: UseVideosOptions = {}) => {
     },
     {
       onError: (error) => {
-        toast.error('Error al generar video', {
-          description: error.message,
+        toast.error('❌ Error al generar video', {
+          description: 'Hubo un problema al procesar tu solicitud. Por favor, inténtalo de nuevo en unos momentos.',
+          duration: 6000,
         });
       },
     }
@@ -133,7 +135,10 @@ export const useVideos = (options: UseVideosOptions = {}) => {
     async (videoId: string) => {
       await VideoService.deleteVideo(videoId);
       
-      toast.success('Video eliminado correctamente');
+      toast.success('🗑️ Video eliminado', {
+        description: 'El video ha sido eliminado correctamente de tu galería.',
+        duration: 3000,
+      });
       
       // Actualizar la lista local
       setVideos(prev => prev.filter(v => v.id !== videoId));
@@ -141,8 +146,9 @@ export const useVideos = (options: UseVideosOptions = {}) => {
     },
     {
       onError: (error) => {
-        toast.error('Error al eliminar video', {
-          description: error.message,
+        toast.error('❌ Error al eliminar video', {
+          description: 'No se pudo eliminar el video. Por favor, inténtalo de nuevo.',
+          duration: 4000,
         });
       },
     }
@@ -179,8 +185,9 @@ export const useVideos = (options: UseVideosOptions = {}) => {
             status: 'processing',
           });
           
-          toast.success('Video reintentado', {
-            description: 'El video se está generando nuevamente.',
+          toast.success('🔄 ¡Video reintentado!', {
+            description: 'Tu video se está generando nuevamente. Te notificaremos cuando esté listo.',
+            duration: 4000,
           });
         }
 
@@ -188,15 +195,17 @@ export const useVideos = (options: UseVideosOptions = {}) => {
         await fetchVideos();
       } catch (error) {
         console.error('Error al reintentar video:', error);
-        toast.error('Error al reintentar', {
-          description: 'No se pudo reintentar la generación del video.',
+        toast.error('⚠️ Error al reintentar', {
+          description: 'No se pudo reintentar la generación del video. Por favor, inténtalo más tarde.',
+          duration: 5000,
         });
       }
     },
     {
       onError: (error) => {
-        toast.error('Error al reintentar video', {
-          description: error.message,
+        toast.error('❌ Error al reintentar video', {
+          description: 'Hubo un problema al reintentar la generación. Por favor, inténtalo más tarde.',
+          duration: 5000,
         });
       },
     }
@@ -316,12 +325,30 @@ export const useVideos = (options: UseVideosOptions = {}) => {
       );
 
       if (statusResponse.status === 'completed') {
-        toast.success('¡Video completado!', {
-          description: 'Tu video está listo para ver.',
+        toast.success('🎉 ¡Video completado!', {
+          description: `Tu video "${video.prompt.slice(0, 50)}${video.prompt.length > 50 ? '...' : ''}" está listo para ver.`,
+          duration: 8000,
+          action: {
+            label: 'Ver video',
+            onClick: () => {
+              // Scroll to the video or open it
+              const videoElement = document.querySelector(`[data-video-id="${video.id}"]`);
+              if (videoElement) {
+                videoElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            },
+          },
         });
       } else if (statusResponse.status === 'failed') {
-        toast.error('Error en la generación', {
-          description: 'Hubo un problema generando tu video.',
+        toast.error('❌ Error en la generación', {
+          description: `No se pudo generar tu video "${video.prompt.slice(0, 50)}${video.prompt.length > 50 ? '...' : ''}". Puedes intentar de nuevo.`,
+          duration: 6000,
+          action: {
+            label: 'Reintentar',
+            onClick: () => {
+              retryVideo(video);
+            },
+          },
         });
       }
 

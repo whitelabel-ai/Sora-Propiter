@@ -6,6 +6,30 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Mapear los status de OpenAI a nuestros valores permitidos
+function mapOpenAIStatus(openaiStatus: string): 'pending' | 'processing' | 'completed' | 'failed' {
+  switch (openaiStatus.toLowerCase()) {
+    case 'pending':
+    case 'queued':
+      return 'pending';
+    case 'in_progress':
+    case 'processing':
+      return 'processing';
+    case 'completed':
+    case 'succeeded':
+    case 'success':
+      return 'completed';
+    case 'failed':
+    case 'error':
+    case 'cancelled':
+    case 'canceled':
+      return 'failed';
+    default:
+      console.warn(`Status desconocido de OpenAI: ${openaiStatus}, mapeando a 'processing'`);
+      return 'processing';
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -103,7 +127,7 @@ serve(async (req) => {
           
           return new Response(
             JSON.stringify({ 
-              status: statusData.status,
+              status: mapOpenAIStatus(statusData.status),
               video_url: filePath, // Ruta SORA/video_xxx.mp4 para la base de datos
               thumbnail_url: statusData.thumbnail_url || null,
               progress: 100
@@ -117,7 +141,7 @@ serve(async (req) => {
           // Si falla la descarga, retornar la URL original como fallback
           return new Response(
             JSON.stringify({ 
-              status: statusData.status,
+              status: mapOpenAIStatus(statusData.status),
               video_url: `https://api.openai.com/v1/videos/${video_id}/content`,
               thumbnail_url: statusData.thumbnail_url || null,
               progress: 100,
@@ -133,7 +157,7 @@ serve(async (req) => {
       // Si no está completado, retornar el estado actual
       return new Response(
         JSON.stringify({ 
-          status: statusData.status,
+          status: mapOpenAIStatus(statusData.status),
           progress: statusData.progress || 0
         }),
         {
@@ -173,7 +197,7 @@ serve(async (req) => {
     // La API retorna { id, status, ... }
     return new Response(JSON.stringify({ 
       video_id: data.id,
-      status: data.status,
+      status: mapOpenAIStatus(data.status),
       progress: data.progress || 0
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

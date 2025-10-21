@@ -347,20 +347,54 @@ const VideoCreator = ({ onVideoGenerated }: VideoCreatorProps) => {
         onClick={handleGenerate}
         size="lg"
         disabled={generating || !prompt.trim() || !category.trim()}
-        className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 shadow-lg transition-all duration-300 disabled:opacity-50"
+        className={`w-full relative overflow-hidden transition-all duration-500 shadow-lg hover:shadow-xl ${
+          generating 
+            ? 'bg-gradient-to-r from-blue-500 to-purple-600 animate-pulse' 
+            : 'bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 hover:scale-[1.02]'
+        } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
       >
-        {generating ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Generando video...
-          </>
-        ) : (
-          <>
-            <Sparkles className="w-4 h-4 mr-2" />
-            Generar video con {model === "sora-2-pro" ? "Sora 2 Pro" : "Sora 2"}
-          </>
+        {generating && (
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
         )}
+        <div className="relative z-10 flex items-center justify-center">
+          {generating ? (
+            <>
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              <span className="font-medium">🎬 Creando tu video...</span>
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-5 h-5 mr-2 animate-pulse" />
+              <span className="font-medium">
+                ✨ Generar video con {model === "sora-2-pro" ? "Sora 2 Pro" : "Sora 2"}
+              </span>
+            </>
+          )}
+        </div>
       </Button>
+
+      {/* Indicador de progreso cuando se está generando */}
+      {generating && (
+        <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                Generando tu video
+              </span>
+            </div>
+            <span className="text-xs text-blue-600 dark:text-blue-400">
+              Esto puede tomar unos minutos...
+            </span>
+          </div>
+          <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2 overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
+          </div>
+          <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+            💡 Tip: Recibirás una notificación cuando tu video esté listo
+          </p>
+        </div>
+      )}
     </div>
   );
 };

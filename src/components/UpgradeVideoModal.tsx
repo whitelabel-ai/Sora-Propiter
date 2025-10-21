@@ -103,18 +103,22 @@ const UpgradeVideoModal = ({
             </Button>
             <Button 
               onClick={onConfirm} 
-              className="flex-1"
+              className={`flex-1 transition-all duration-300 ${
+                isUpgrading 
+                  ? 'bg-gradient-to-r from-primary/80 to-secondary/80 shimmer' 
+                  : 'bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 hover:scale-[1.02] hover:shadow-lg'
+              }`}
               disabled={isUpgrading}
             >
               {isUpgrading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Mejorando...
+                  ✨ Mejorando video...
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Confirmar Mejora
+                  🚀 Confirmar Mejora
                 </>
               )}
             </Button>

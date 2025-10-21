@@ -35,13 +35,13 @@ const VideoCard = ({
   const getStatusIcon = () => {
     switch (video.status) {
       case 'completed':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
+        return <CheckCircle className="w-5 h-5 text-green-500 drop-shadow-sm" />;
       case 'processing':
-        return <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />;
+        return <Loader2 className="w-5 h-5 text-blue-500 animate-spin drop-shadow-sm" />;
       case 'pending':
-        return <Clock className="w-4 h-4 text-yellow-500" />;
+        return <Clock className="w-5 h-5 text-amber-500 animate-pulse drop-shadow-sm" />;
       case 'failed':
-        return <XCircle className="w-4 h-4 text-red-500" />;
+        return <XCircle className="w-5 h-5 text-red-500 drop-shadow-sm" />;
       default:
         return null;
     }
@@ -50,15 +50,30 @@ const VideoCard = ({
   const getStatusText = () => {
     switch (video.status) {
       case 'completed':
-        return 'Completado';
+        return '✅ Completado';
       case 'processing':
-        return 'Procesando';
+        return '🎬 Generando...';
       case 'pending':
-        return 'Pendiente';
+        return '⏳ En cola';
       case 'failed':
-        return 'Fallido';
+        return '❌ Error';
       default:
         return video.status;
+    }
+  };
+
+  const getStatusBadgeVariant = () => {
+    switch (video.status) {
+      case 'completed':
+        return 'default';
+      case 'processing':
+        return 'secondary';
+      case 'pending':
+        return 'outline';
+      case 'failed':
+        return 'destructive';
+      default:
+        return 'outline';
     }
   };
 
@@ -101,6 +116,7 @@ const VideoCard = ({
   });
   return (
     <div 
+      data-video-id={video.id}
       onClick={isClickable ? onClick : undefined}
       className={`group bg-card shadow-card rounded-lg overflow-hidden transition-smooth hover:shadow-glow ${
         isClickable ? 'cursor-pointer hover:scale-[1.02]' : 'cursor-default'
@@ -111,10 +127,39 @@ const VideoCard = ({
         
         {/* Overlay para videos no completados */}
         {!isClickable && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <div className="text-center text-white">
-              {getStatusIcon()}
-              <p className="text-sm mt-2">{getStatusText()}</p>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-center justify-center backdrop-blur-sm">
+            <div className="text-center text-white p-4 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20">
+              <div className="flex justify-center mb-2">
+                {getStatusIcon()}
+              </div>
+              <p className="text-sm font-medium">{getStatusText()}</p>
+              {video.status === 'processing' && (
+                <p className="text-xs text-white/70 mt-1">Esto puede tomar unos minutos</p>
+              )}
+              {video.status === 'failed' && onRetry && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRetry();
+                  }}
+                  disabled={retrying}
+                  className="mt-2 text-xs h-7 bg-white/10 border-white/30 text-white hover:bg-white/20"
+                >
+                  {retrying ? (
+                    <>
+                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      Reintentando...
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="w-3 h-3 mr-1" />
+                      Reintentar
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -132,7 +177,10 @@ const VideoCard = ({
         )}
         
         <div className="absolute top-2 left-2 flex gap-2">
-          <Badge variant="secondary" className="text-xs flex items-center gap-1">
+          <Badge 
+            variant={getStatusBadgeVariant()} 
+            className="text-xs flex items-center gap-1 backdrop-blur-sm bg-opacity-90 shadow-sm"
+          >
             {getStatusIcon()}
             {getStatusText()}
           </Badge>
@@ -140,13 +188,13 @@ const VideoCard = ({
         
         <div className="absolute top-2 right-2 flex gap-2">
           {video.duration && (
-            <Badge variant="secondary" className="text-xs">
-              {video.duration}s
+            <Badge variant="outline" className="text-xs backdrop-blur-sm bg-black/20 border-white/30 text-white shadow-sm">
+              ⏱️ {video.duration}s
             </Badge>
           )}
           {video.size && (
-            <Badge variant="secondary" className="text-xs">
-              {video.size}
+            <Badge variant="outline" className="text-xs backdrop-blur-sm bg-black/20 border-white/30 text-white shadow-sm">
+              📐 {video.size}
             </Badge>
           )}
         </div>
