@@ -26,6 +26,7 @@ const Index = () => {
     duration: string;
     resolution: string;
     style: string;
+    model: string;
   }) => {
     setIsGenerating(true);
     setProgress(0);

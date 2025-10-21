@@ -12,14 +12,23 @@ interface VideoCreatorProps {
     duration: string;
     resolution: string;
     style: string;
+    model: string;
   }) => void;
 }
 
 const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
   const [prompt, setPrompt] = useState("");
-  const [duration, setDuration] = useState("5");
-  const [resolution, setResolution] = useState("1080p");
+  const [model, setModel] = useState("sora-2");
+  const [duration, setDuration] = useState("4");
+  const [resolution, setResolution] = useState("1280x720");
   const [style, setStyle] = useState("realistic");
+
+  const getResolutionOptions = () => {
+    if (model === "sora-2-pro") {
+      return ["1280x720", "720x1280", "1024x1792", "1792x1024"];
+    }
+    return ["1280x720", "720x1280"];
+  };
 
   const handleGenerate = () => {
     if (!prompt.trim()) {
@@ -27,7 +36,7 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
       return;
     }
     
-    onGenerate({ prompt, duration, resolution, style });
+    onGenerate({ prompt, duration, resolution, style, model });
     toast.success("Generando tu video...");
   };
 
@@ -59,7 +68,27 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="model" className="flex items-center gap-2">
+              <Video className="w-3 h-3" />
+              Modelo
+            </Label>
+            <Select value={model} onValueChange={(val) => {
+              setModel(val);
+              // Reset resolution when model changes
+              setResolution("1280x720");
+            }}>
+              <SelectTrigger id="model" className="bg-secondary/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sora-2">Sora 2</SelectItem>
+                <SelectItem value="sora-2-pro">Sora 2 Pro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="duration" className="flex items-center gap-2">
               <Clock className="w-3 h-3" />
@@ -70,10 +99,9 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="3">3 segundos</SelectItem>
-                <SelectItem value="5">5 segundos</SelectItem>
-                <SelectItem value="10">10 segundos</SelectItem>
-                <SelectItem value="20">20 segundos</SelectItem>
+                <SelectItem value="4">4 segundos</SelectItem>
+                <SelectItem value="8">8 segundos</SelectItem>
+                <SelectItem value="12">12 segundos</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -88,9 +116,9 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="720p">720p (HD)</SelectItem>
-                <SelectItem value="1080p">1080p (Full HD)</SelectItem>
-                <SelectItem value="4k">4K (Ultra HD)</SelectItem>
+                {getResolutionOptions().map((res) => (
+                  <SelectItem key={res} value={res}>{res}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -121,7 +149,7 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
           className="w-full"
         >
           <Sparkles className="w-4 h-4" />
-          Generar Video con Sora 2
+          Generar Video con {model === "sora-2-pro" ? "Sora 2 Pro" : "Sora 2"}
         </Button>
       </div>
     </div>
