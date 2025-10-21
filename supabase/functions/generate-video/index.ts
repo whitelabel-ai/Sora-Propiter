@@ -50,8 +50,8 @@ serve(async (req) => {
     }
 
     // Si no hay video_id, iniciar generación
-    const { prompt, duration, resolution, style, model } = await req.json();
-    console.log('Generando video con:', { prompt, duration, resolution, style, model });
+    const { prompt, seconds, size, model } = await req.json();
+    console.log('Generando video con:', { prompt, seconds, size, model });
 
     const response = await fetch('https://api.openai.com/v1/videos', {
       method: 'POST',
@@ -62,9 +62,8 @@ serve(async (req) => {
       body: JSON.stringify({
         model: model || 'sora-2',
         prompt,
-        duration: parseInt(duration),
-        resolution,
-        style,
+        seconds: parseInt(seconds),
+        size,
       }),
     });
 

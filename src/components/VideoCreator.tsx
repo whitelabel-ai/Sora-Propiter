@@ -9,9 +9,8 @@ import { toast } from "sonner";
 interface VideoCreatorProps {
   onGenerate: (params: {
     prompt: string;
-    duration: string;
-    resolution: string;
-    style: string;
+    seconds: string;
+    size: string;
     model: string;
   }) => void;
 }
@@ -19,11 +18,10 @@ interface VideoCreatorProps {
 const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState("sora-2");
-  const [duration, setDuration] = useState("4");
-  const [resolution, setResolution] = useState("1280x720");
-  const [style, setStyle] = useState("realistic");
+  const [seconds, setSeconds] = useState("4");
+  const [size, setSize] = useState("1280x720");
 
-  const getResolutionOptions = () => {
+  const getSizeOptions = () => {
     if (model === "sora-2-pro") {
       return ["1280x720", "720x1280", "1024x1792", "1792x1024"];
     }
@@ -36,7 +34,7 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
       return;
     }
     
-    onGenerate({ prompt, duration, resolution, style, model });
+    onGenerate({ prompt, seconds, size, model });
     toast.success("Generando tu video...");
   };
 
@@ -68,7 +66,7 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="model" className="flex items-center gap-2">
               <Video className="w-3 h-3" />
@@ -76,8 +74,8 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
             </Label>
             <Select value={model} onValueChange={(val) => {
               setModel(val);
-              // Reset resolution when model changes
-              setResolution("1280x720");
+              // Reset size when model changes
+              setSize("1280x720");
             }}>
               <SelectTrigger id="model" className="bg-secondary/50">
                 <SelectValue />
@@ -90,12 +88,12 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="duration" className="flex items-center gap-2">
+            <Label htmlFor="seconds" className="flex items-center gap-2">
               <Clock className="w-3 h-3" />
               Duración
             </Label>
-            <Select value={duration} onValueChange={setDuration}>
-              <SelectTrigger id="duration" className="bg-secondary/50">
+            <Select value={seconds} onValueChange={setSeconds}>
+              <SelectTrigger id="seconds" className="bg-secondary/50">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -107,36 +105,18 @@ const VideoCreator = ({ onGenerate }: VideoCreatorProps) => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="resolution" className="flex items-center gap-2">
+            <Label htmlFor="size" className="flex items-center gap-2">
               <Maximize2 className="w-3 h-3" />
               Resolución
             </Label>
-            <Select value={resolution} onValueChange={setResolution}>
-              <SelectTrigger id="resolution" className="bg-secondary/50">
+            <Select value={size} onValueChange={setSize}>
+              <SelectTrigger id="size" className="bg-secondary/50">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {getResolutionOptions().map((res) => (
+                {getSizeOptions().map((res) => (
                   <SelectItem key={res} value={res}>{res}</SelectItem>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="style" className="flex items-center gap-2">
-              <Sparkles className="w-3 h-3" />
-              Estilo
-            </Label>
-            <Select value={style} onValueChange={setStyle}>
-              <SelectTrigger id="style" className="bg-secondary/50">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="realistic">Realista</SelectItem>
-                <SelectItem value="cinematic">Cinematográfico</SelectItem>
-                <SelectItem value="animated">Animado</SelectItem>
-                <SelectItem value="artistic">Artístico</SelectItem>
               </SelectContent>
             </Select>
           </div>

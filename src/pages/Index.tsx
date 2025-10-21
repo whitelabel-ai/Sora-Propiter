@@ -23,9 +23,8 @@ const Index = () => {
 
   const handleGenerate = async (params: {
     prompt: string;
-    duration: string;
-    resolution: string;
-    style: string;
+    seconds: string;
+    size: string;
     model: string;
   }) => {
     setIsGenerating(true);
@@ -95,8 +94,8 @@ const Index = () => {
               prompt: params.prompt,
               thumbnailUrl: heroBg,
               videoUrl: videoUrl,
-              duration: `${params.duration}s`,
-              resolution: params.resolution,
+              duration: `${params.seconds}s`,
+              resolution: params.size,
               createdAt: new Date().toLocaleDateString('es-ES', {
                 month: 'short',
                 day: 'numeric',
