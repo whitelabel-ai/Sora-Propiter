@@ -209,6 +209,7 @@ const Index = () => {
               videoUrl={currentVideo} 
               isGenerating={isGenerating}
               progress={progress}
+              prompt={videos[0]?.prompt}
             />
           </div>
 

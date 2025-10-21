@@ -1,24 +1,81 @@
 import { Play, Download, Share2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface VideoPreviewProps {
   videoUrl?: string;
   isGenerating: boolean;
   progress?: number;
+  prompt?: string;
 }
 
-const VideoPreview = ({ videoUrl, isGenerating, progress = 0 }: VideoPreviewProps) => {
+const VideoPreview = ({ videoUrl, isGenerating, progress = 0, prompt }: VideoPreviewProps) => {
+  const { toast } = useToast();
+
+  const handleDownload = () => {
+    if (!videoUrl) return;
+    
+    const a = document.createElement('a');
+    a.href = videoUrl;
+    a.download = `sora-video-${Date.now()}.mp4`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    toast({
+      title: "Descargando video",
+      description: "Tu video se está descargando.",
+    });
+  };
+
+  const handleShare = async () => {
+    if (!videoUrl) return;
+    
+    try {
+      // Obtener el blob del video
+      const response = await fetch(videoUrl);
+      const blob = await response.blob();
+      const file = new File([blob], 'sora-video.mp4', { type: 'video/mp4' });
+      
+      if (navigator.share && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: 'Video generado con Sora',
+          text: prompt || 'Video creado con IA',
+          files: [file]
+        });
+        
+        toast({
+          title: "¡Compartido!",
+          description: "Video compartido exitosamente.",
+        });
+      } else {
+        // Fallback: copiar URL al portapapeles
+        await navigator.clipboard.writeText(window.location.href);
+        toast({
+          title: "URL copiada",
+          description: "El enlace ha sido copiado al portapapeles.",
+        });
+      }
+    } catch (error) {
+      console.error('Error al compartir:', error);
+      toast({
+        title: "Error al compartir",
+        description: "No se pudo compartir el video.",
+        variant: "destructive",
+      });
+    }
+  };
   return (
     <div className="bg-card shadow-card rounded-xl p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Vista Previa</h2>
         {videoUrl && (
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={handleShare} title="Compartir video">
               <Share2 className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={handleDownload} title="Descargar video">
               <Download className="w-4 h-4" />
             </Button>
           </div>
@@ -45,19 +102,13 @@ const VideoPreview = ({ videoUrl, isGenerating, progress = 0 }: VideoPreviewProp
             </div>
           </div>
         ) : videoUrl ? (
-          <div className="relative group">
-            <video 
-              src={videoUrl} 
-              className="w-full h-full object-cover"
-              controls
-            />
-            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-smooth flex items-center justify-center">
-              <Button variant="gradient" size="lg" className="gap-2">
-                <Play className="w-5 h-5" />
-                Reproducir
-              </Button>
-            </div>
-          </div>
+          <video 
+            src={videoUrl} 
+            className="w-full h-full object-cover"
+            controls
+            controlsList="nodownload"
+            playsInline
+          />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
             <div className="w-16 h-16 rounded-full gradient-glow flex items-center justify-center">
